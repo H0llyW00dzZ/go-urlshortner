@@ -1,7 +1,7 @@
 # Go URL Shortener
 [![Go Report Card](https://goreportcard.com/badge/github.com/H0llyW00dzZ/go-urlshortner)](https://goreportcard.com/report/github.com/H0llyW00dzZ/go-urlshortner)
 
-This is a simple URL shortening service written in Go, using Gorilla Mux for routing and Google Cloud Datastore for storage.
+This is a simple URL shortening service written in Go, using Gin-Web Framework for routing and Google Cloud Datastore for storage.
 
 ## Introduction
 
