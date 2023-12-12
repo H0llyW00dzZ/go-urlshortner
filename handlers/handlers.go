@@ -42,7 +42,7 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		id, err := shortid.Generate(10) // Generate a 10-character ID
+		id, err := shortid.Generate(5) // Generate a 5-character ID
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate ID"})
 			return
