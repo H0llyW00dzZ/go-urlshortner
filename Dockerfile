@@ -1,27 +1,34 @@
 # Use the official Golang image to create a build artifact.
 FROM golang:1.21.5 as builder
 
-# Copy local code to the container image.
+# Set the working directory inside the container.
 WORKDIR /app
+
+# Copy go.mod and go.sum to download dependencies.
 COPY go.mod go.sum ./
 
 # Verify the integrity of the modules.
 RUN go mod verify
 
-# Copy the rest of the code
+# Download dependencies.
+RUN go mod download
+
+# Copy the rest of the code from the current directory to the working directory inside the container.
 COPY . .
 
 # Build the binary.
-RUN CGO_ENABLED=0 GOOS=linux go build -v -o go-urlshortner
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o go-urlshortner ./cmd
 
 # Use a Docker multi-stage build to create a lean production image.
 FROM alpine:latest
+
+# Add ca-certificates in case you need HTTPS.
 RUN apk --no-cache add ca-certificates
 
 # Add a non-root user called 'go-urlshortner'
 RUN adduser -D go-urlshortner
 
-# Copy the built binary from the builder stage.
+# Copy the built binary from the builder stage to the production image.
 COPY --from=builder /app/go-urlshortner /go-urlshortner
 
 # Use the non-root user to run our application
