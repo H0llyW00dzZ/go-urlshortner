@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/H0llyW00dzZ/ChatGPT-Next-Web-Session-Exporter/bannercli"
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/handlers"
 	"github.com/gin-gonic/gin"
@@ -16,13 +18,14 @@ func main() {
 	// Get the project ID from the "DATASTORE_PROJECT_ID" environment variable
 	projectID := os.Getenv("DATASTORE_PROJECT_ID")
 	if projectID == "" {
-		fmt.Println("DATASTORE_PROJECT_ID environment variable is not set.")
+		bannercli.PrintTypingBanner("DATASTORE_PROJECT_ID environment variable is not set.", 100*time.Millisecond)
 		os.Exit(1)
 	}
 
 	datastoreClient, err := datastore.CreateDatastoreClient(ctx, projectID)
 	if err != nil {
-		fmt.Printf("Failed to create datastore client: %v\n", err)
+		errorMessage := fmt.Sprintf("Failed to create datastore client: %v\n", err)
+		bannercli.PrintTypingBanner(errorMessage, 100*time.Millisecond)
 		os.Exit(1)
 	}
 
@@ -48,7 +51,8 @@ func main() {
 
 	fmt.Printf("Listening on port %s\n", port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		fmt.Printf("Server failed to start: %v\n", err)
+		errorMessage := fmt.Sprintf("Server failed to start: %v\n", err)
+		bannercli.PrintTypingBanner(errorMessage, 100*time.Millisecond)
 		os.Exit(1)
 	}
 }
