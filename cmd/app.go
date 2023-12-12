@@ -9,6 +9,7 @@ import (
 	"github.com/H0llyW00dzZ/ChatGPT-Next-Web-Session-Exporter/bannercli"
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/handlers"
+	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,6 +36,9 @@ func main() {
 	}
 
 	router := gin.Default()
+
+	// Use the RequestLogger middleware from the logmonitor package
+	router.Use(logmonitor.RequestLogger())
 
 	// Register the handlers using Gin
 	handlers.RegisterHandlersGin(router, datastoreClient)
