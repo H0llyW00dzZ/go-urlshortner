@@ -29,7 +29,7 @@ func CreateDatastoreClient(ctx context.Context, projectID string) (*datastore.Cl
 
 // SaveURL saves a new URL entity to Datastore.
 func SaveURL(ctx context.Context, client *datastore.Client, url *URL) error {
-	key := datastore.NameKey("URL", url.ID, nil)
+	key := datastore.NameKey("urlz", url.ID, nil)
 	_, err := client.Put(ctx, key, url)
 	if err != nil {
 		fmt.Printf("Failed to save URL: %v\n", err)
@@ -40,7 +40,7 @@ func SaveURL(ctx context.Context, client *datastore.Client, url *URL) error {
 
 // GetURL retrieves a URL by its ID from Datastore.
 func GetURL(ctx context.Context, client *datastore.Client, id string) (*URL, error) {
-	key := datastore.NameKey("URL", id, nil)
+	key := datastore.NameKey("urlz", id, nil)
 	url := new(URL)
 	err := client.Get(ctx, key, url)
 	if err != nil {
