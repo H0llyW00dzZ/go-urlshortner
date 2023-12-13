@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -47,11 +48,12 @@ func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 		key := cloudDatastore.NameKey("urlz", id, nil)
 		var url localDatastore.URL
 		if err := dsClient.Get(c, key, &url); err != nil {
+			fmt.Printf("Failed to get URL: %v\n", err)
 			if err == cloudDatastore.ErrNoSuchEntity {
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 				return
 			}
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.Redirect(http.StatusFound, url.Original)
@@ -70,7 +72,8 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 
 		id, err := shortid.Generate(5) // Generate a 5-character ID
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate ID"})
+			fmt.Printf("Failed to generate ID: %v\n", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -80,7 +83,8 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 			ID:       id,
 		}
 		if _, err := dsClient.Put(c, key, &url); err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			fmt.Printf("Failed to save URL: %v\n", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"id": id})
