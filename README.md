@@ -22,7 +22,7 @@ This project aims to provide a straightforward and scalable approach to creating
 
 To use the Go URL Shortener, you'll need to make HTTP requests to its API endpoints. Currently, the service supports creating short URLs with a `POST` request.
 
-### Creating a Short URL
+### Example Creating a Short URL
 
 To create a short URL, send a `POST` request with a JSON payload containing the original URL. You'll also need to include a custom internal secret header for authentication purposes.
 
