@@ -87,6 +87,15 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"id": id})
+
+		// Automatically detect the base URL
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
+
+		fullShortenedURL := baseURL + "/" + id
+		c.JSON(http.StatusOK, gin.H{"id": id, "shortened_url": fullShortenedURL})
 	}
 }
