@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 
 	cloudDatastore "cloud.google.com/go/datastore"
 	localDatastore "github.com/H0llyW00dzZ/go-urlshortner/datastore"
@@ -9,9 +10,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// InternalOnly is a middleware that ensures only internal services can access the route.
+func InternalOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the secret value from an environment variable.
+		expectedSecretValue := os.Getenv("INTERNAL_SECRET_VALUE")
+		if expectedSecretValue == "" {
+			// If the environment variable is not set, abort and report an internal server error.
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal configuration error"})
+			return
+		}
+
+		// Check the request header against the expected secret value.
+		if c.GetHeader("X-Internal-Secret") != expectedSecretValue {
+			// If the header does not match the expected secret, abort the request.
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			return
+		}
+
+		// If the header matches, proceed with the request.
+		c.Next()
+	}
+}
+
 func RegisterHandlersGin(router *gin.Engine, dsClient *cloudDatastore.Client) {
 	router.GET("/:id", getURLHandlerGin(dsClient))
-	router.POST("/", postURLHandlerGin(dsClient))
+
+	// Apply the InternalOnly middleware to the POST route.
+	router.POST("/", InternalOnly(), postURLHandlerGin(dsClient))
 }
 
 func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
