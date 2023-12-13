@@ -39,7 +39,10 @@ Replace `YOURKEY-SECRET` with the actual secret key required by your deployment.
 The service will respond with a JSON object that includes the ID of the shortened URL:
 
 ```json
-{"id":"ShortenedID"}
+{
+  "id": "{ShortenedID}",
+  "shortened_url": "https://example-your-deployurl-go-dev.a.run.app/{ShortenedID}"
+}
 ```
 
 You can then access the shortened URL at `https://example-your-deployurl-go-dev.a.run.app/{ShortenedID}`, which will redirect you to the original URL.
