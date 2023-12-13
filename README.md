@@ -47,6 +47,10 @@ The service will respond with a JSON object that includes the ID of the shortene
 
 You can then access the shortened URL at `https://example-your-deployurl-go-dev.a.run.app/{ShortenedID}`, which will redirect you to the original URL.
 
+## Roadmap
+
+As the project is written in Go, we are considering the development of our own NoSQL database for persistent storage. This would allow us to tailor the storage solution specifically to our needs and avoid dependency on third-party cloud services.
+
 ## Contributing
 
-Contributions are welcome! For major changes, please open an issue first to discuss what you would like to change.
+Contributions are very much welcome! If you're thinking about making significant changes or improvements, please start by opening an issue. This allows us to have a discussion about the proposed changes and agree on the best approach before moving forward. We value your ideas and input, and we look forward to collaborating with you!
