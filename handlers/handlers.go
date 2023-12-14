@@ -18,7 +18,17 @@ import (
 	"go.uber.org/zap"
 )
 
+// Logger is a package-level variable to access the zap logger throughout the handlers package.
+// It is intended to be used by other functions within the package for logging purposes.
 var Logger *zap.Logger
+
+// basePath is a package-level variable to store the base path for the handlers.
+// It is set once during package initialization.
+var basePath string
+
+// internalSecretValue is a package-level variable that stores the secret value required by the InternalOnly middleware.
+// It is set once during package initialization.
+var internalSecretValue string
 
 func init() {
 	config := zap.NewDevelopmentConfig()
@@ -26,6 +36,21 @@ func init() {
 	Logger, err = config.Build()
 	if err != nil {
 		panic(err)
+	}
+	// Initialize the base path from an environment variable or use "/" as default.
+	basePath = os.Getenv("CUSTOM_BASE_PATH")
+	if basePath == "" {
+		basePath = "/"
+	}
+	// Ensure the basePath is correctly formatted.
+	if !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+
+	// Initialize the internal secret value from an environment variable.
+	internalSecretValue = os.Getenv("INTERNAL_SECRET_VALUE")
+	if internalSecretValue == "" {
+		panic("INTERNAL_SECRET_VALUE is not set")
 	}
 }
 
@@ -35,16 +60,8 @@ func init() {
 // the request is aborted with a 403 Forbidden status.
 func InternalOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get the secret value from an environment variable.
-		expectedSecretValue := os.Getenv("INTERNAL_SECRET_VALUE")
-		if expectedSecretValue == "" {
-			// If the environment variable is not set, abort and report an internal server error.
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal configuration error"})
-			return
-		}
-
 		// Check the request header against the expected secret value.
-		if c.GetHeader("X-Internal-Secret") != expectedSecretValue {
+		if c.GetHeader("X-Internal-Secret") != internalSecretValue {
 			// If the header does not match the expected secret, abort the request.
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
 			return
@@ -58,20 +75,7 @@ func InternalOnly() gin.HandlerFunc {
 // RegisterHandlersGin registers the HTTP handlers for the URL shortener service using the Gin
 // web framework. It sets up the routes for retrieving and creating shortened URLs and applies
 // the InternalOnly middleware to the POST route to protect it from public access.
-// The base path for the handlers can be customized via the CUSTOM_BASE_PATH environment variable.
-// If CUSTOM_BASE_PATH is not set, the default base path "/" is used.
 func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) {
-	// Retrieve the custom base path from an environment variable or use "/" as default.
-	basePath := os.Getenv("CUSTOM_BASE_PATH")
-	if basePath == "" {
-		basePath = "/"
-	}
-
-	// Ensure the basePath is correctly formatted.
-	if basePath[len(basePath)-1:] != "/" {
-		basePath += "/"
-	}
-
 	// Register handlers with the custom or default base path.
 	// For example, if CUSTOM_BASE_PATH is "/api/", the GET route will be "/api/:id" and
 	// the POST route will be "/api/".
@@ -192,28 +196,8 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 	}
 
 	baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
-	basePath := getBasePath()
-
-	// Ensure the basePath starts with a slash.
-	if !strings.HasPrefix(basePath, "/") {
-		basePath = "/" + basePath
-	}
-
+	// Use the basePath variable directly.
 	return baseURL + basePath + id
-}
-
-// getBasePath retrieves the base path for the URL from the environment variable or defaults to "/".
-// It ensures that the returned base path always ends with a slash.
-func getBasePath() string {
-	basePath := os.Getenv("CUSTOM_BASE_PATH")
-	if basePath == "" {
-		basePath = "/"
-	}
-	// Ensure the basePath ends with a slash.
-	if !strings.HasSuffix(basePath, "/") {
-		basePath += "/"
-	}
-	return basePath
 }
 
 // handleError logs the error and sends a JSON response with the error message and status code.
