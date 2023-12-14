@@ -196,8 +196,15 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 	}
 
 	baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
-	// Use the basePath variable directly.
-	return baseURL + basePath + id
+
+	// Create a local copy of basePath to avoid modifying the package-level variable.
+	localBasePath := basePath
+	if !strings.HasSuffix(localBasePath, "/") {
+		localBasePath += "/"
+	}
+
+	// Use the localBasePath variable which is guaranteed to end with a slash.
+	return fmt.Sprintf("%s%s%s", baseURL, localBasePath, id)
 }
 
 // handleError logs the error and sends a JSON response with the error message and status code.
