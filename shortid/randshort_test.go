@@ -7,7 +7,7 @@ import (
 
 // TestGenerate ensures that the Generate function returns a string of the correct length and no error.
 func TestGenerate(t *testing.T) {
-	length := 5
+	length := 1337
 	id, err := Generate(length)
 	if err != nil {
 		t.Fatalf("Generate returned an unexpected error: %v", err)
@@ -19,7 +19,7 @@ func TestGenerate(t *testing.T) {
 
 // TestGenerateUniqueness checks if the Generate function returns unique values on subsequent calls.
 func TestGenerateUniqueness(t *testing.T) {
-	length := 5
+	length := 1337
 	iterations := 1000
 	ids := make(map[string]bool)
 
