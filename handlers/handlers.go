@@ -11,14 +11,22 @@ import (
 	"net/http"
 	"os"
 
-	cloudDatastore "cloud.google.com/go/datastore"
-	localDatastore "github.com/H0llyW00dzZ/go-urlshortner/datastore"
+	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/shortid"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 var Logger *zap.Logger
+
+func init() {
+	config := zap.NewDevelopmentConfig()
+	var err error
+	Logger, err = config.Build()
+	if err != nil {
+		panic(err)
+	}
+}
 
 // InternalOnly creates a middleware that restricts access to a route to internal services only.
 // It checks for a specific header containing a secret value that should match an environment
@@ -51,7 +59,7 @@ func InternalOnly() gin.HandlerFunc {
 // the InternalOnly middleware to the POST route to protect it from public access.
 // The base path for the handlers can be customized via the CUSTOM_BASE_PATH environment variable.
 // If CUSTOM_BASE_PATH is not set, the default base path "/" is used.
-func RegisterHandlersGin(router *gin.Engine, dsClient *cloudDatastore.Client) {
+func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) {
 	// Retrieve the custom base path from an environment variable or use "/" as default.
 	basePath := os.Getenv("CUSTOM_BASE_PATH")
 	if basePath == "" {
@@ -66,28 +74,32 @@ func RegisterHandlersGin(router *gin.Engine, dsClient *cloudDatastore.Client) {
 	// Register handlers with the custom or default base path.
 	// For example, if CUSTOM_BASE_PATH is "/api/", the GET route will be "/api/:id" and
 	// the POST route will be "/api/".
-	router.GET(basePath+":id", getURLHandlerGin(dsClient))
-	router.POST(basePath, InternalOnly(), postURLHandlerGin(dsClient))
+	router.GET(basePath+":id", getURLHandlerGin(datastoreClient))
+	router.POST(basePath, InternalOnly(), postURLHandlerGin(datastoreClient))
 }
 
 // getURLHandlerGin returns a Gin handler function that retrieves and redirects to the original
 // URL based on a short identifier provided in the request path. If the identifier is not found
 // or an error occurs, the handler responds with the appropriate HTTP status code and error message.
-func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
+func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 
-		// Assuming localDatastore.GetURL is a function that correctly handles datastore operations.
-		url, err := localDatastore.GetURL(c, dsClient, id)
+		// Assuming datastore.GetURL is a function that correctly handles datastore operations.
+		url, err := datastore.GetURL(c, dsClient, id)
 		if err != nil {
-			if err == localDatastore.ErrNotFound {
+			logFields := []zap.Field{
+				zap.String("operation", "getURL"),
+				zap.String("id", id),
+				zap.Error(err),
+			}
+			if err == datastore.ErrNotFound {
 				// Entity not found
-				localDatastore.Logger.Warn("URL not found", zap.String("id", id))
+				Logger.Warn("URL not found", logFields...)
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 				return
 			} else {
-				// Some other error occurred
-				localDatastore.Logger.Error("Failed to get URL", zap.String("id", id), zap.Error(err))
+				Logger.Error("Failed to get URL", logFields...)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 				return
 			}
@@ -95,12 +107,14 @@ func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 
 		// Check if URL is nil after the GetURL call
 		if url == nil {
-			localDatastore.Logger.Error("URL is nil after GetURL call", zap.String("id", id))
+			Logger.Error("URL is nil after GetURL call",
+				zap.String("operation", "getURL"),
+				zap.String("id", id),
+			)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
-		// Redirect to the original URL if no error occurred and URL is not nil.
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
@@ -109,7 +123,7 @@ func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 // URL. It expects a JSON payload with the original URL, generates a short identifier, and stores
 // the mapping in Google Cloud Datastore. If successful, it returns the generated identifier and
 // the shortened URL; otherwise, it responds with an error.
-func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
+func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
 			URL string `json:"url"`
@@ -127,13 +141,13 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		key := cloudDatastore.NameKey("urlz", id, nil)
-		url := localDatastore.URL{
+		url := &datastore.URL{
 			Original: req.URL,
 			ID:       id,
 		}
-		if _, err := dsClient.Put(c, key, &url); err != nil {
-			Logger.Error("Failed to save URL", zap.String("id", id), zap.Error(err))
+
+		if err := datastore.SaveURL(c, dsClient, url); err != nil {
+			Logger.Error("Failed to save URL", zap.Error(err))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

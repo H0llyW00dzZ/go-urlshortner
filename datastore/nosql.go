@@ -15,6 +15,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// Client wraps the cloudDatastore.Client to abstract away the underlying implementation.
+type Client struct {
+	*cloudDatastore.Client
+}
+
 // URL represents a shortened URL with its original URL and a unique identifier.
 type URL struct {
 	Original string `datastore:"original"` // The original URL.
@@ -45,21 +50,20 @@ func CreateContext() context.Context {
 // CreateDatastoreClient creates a new client connected to Google Cloud Datastore.
 // It requires a context and a projectID to initialize the connection.
 // Returns a new Datastore client or an error if the connection could not be established.
-func CreateDatastoreClient(ctx context.Context, projectID string) (*cloudDatastore.Client, error) {
-	client, err := cloudDatastore.NewClient(ctx, projectID)
+func CreateDatastoreClient(ctx context.Context, projectID string) (*Client, error) {
+	cloudClient, err := cloudDatastore.NewClient(ctx, projectID)
 	if err != nil {
-		// Use zap logger to log the error for consistent logging.
 		Logger.Error("Failed to create client", zap.Error(err))
 		return nil, err
 	}
-	return client, nil
+	return &Client{cloudClient}, nil
 }
 
 // SaveURL saves a new URL entity to Datastore under the Kind 'urlz'.
 // It takes a context, a Datastore client, and a URL struct.
 // If the Kind 'urlz' does not exist, Datastore will create it automatically.
 // Returns an error if the URL entity could not be saved.
-func SaveURL(ctx context.Context, client *cloudDatastore.Client, url *URL) error {
+func SaveURL(ctx context.Context, client *Client, url *URL) error {
 	key := cloudDatastore.NameKey("urlz", url.ID, nil)
 	_, err := client.Put(ctx, key, url)
 	if err != nil {
@@ -73,7 +77,7 @@ func SaveURL(ctx context.Context, client *cloudDatastore.Client, url *URL) error
 // GetURL retrieves a URL entity by its ID from Datastore.
 // It requires a context, a Datastore client, and the ID of the URL entity.
 // Returns the URL entity or an error if the entity could not be retrieved.
-func GetURL(ctx context.Context, dsClient *cloudDatastore.Client, id string) (*URL, error) {
+func GetURL(ctx context.Context, dsClient *Client, id string) (*URL, error) {
 	key := cloudDatastore.NameKey("urlz", id, nil)
 	url := new(URL)
 	err := dsClient.Get(ctx, key, url)
@@ -90,7 +94,7 @@ func GetURL(ctx context.Context, dsClient *cloudDatastore.Client, id string) (*U
 // CloseClient closes the Datastore client.
 // It should be called to clean up resources and connections when the client is no longer needed.
 // Logs an error if the client could not be closed, but does not return an error.
-func CloseClient(client *cloudDatastore.Client) {
+func CloseClient(client *Client) {
 	err := client.Close()
 	if err != nil {
 		// Use zap logger to log the error for consistent logging.
