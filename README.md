@@ -19,6 +19,24 @@ This project aims to provide a straightforward and scalable approach to creating
 - **Redirection**: Use the generated short link to redirect to the original URL.
 - **Simple Integration**: Easily integrate with your applications using RESTful API endpoints.
 
+## Environment Configuration
+
+The following table lists the environment variables used by the Go URL Shortener, which you can set to configure the application:
+
+| Environment Variable    | Description                                                  | Required | Default Value |
+|-------------------------|--------------------------------------------------------------|:--------:|:-------------:|
+| `DATASTORE_PROJECT_ID`  | Your Google Cloud Datastore project ID.                      | Yes      | None          |
+| `INTERNAL_SECRET_VALUE` | A secret value used for internal authentication purposes.    | Yes      | None          |
+| `GIN_MODE`              | The mode Gin runs in. Set to "release" for production.       | No       | "debug"       |
+
+### Notes on Environment Variables
+
+- `DATASTORE_PROJECT_ID` and `INTERNAL_SECRET_VALUE` are mandatory for the application to function correctly. Without these, the application will not be able to connect to Google Cloud Datastore or secure its endpoints.
+- `GIN_MODE` is optional and controls the framework's runtime mode. The default mode is "debug", which is suitable for development since it provides detailed logging and error messages. However, it is recommended to set `GIN_MODE` to "release" in a production environment. This turns off debug logging, which can improve performance and prevent the exposure of sensitive information in logs.
+- Always ensure that environment variables containing sensitive information are kept secure. Do not hardcode them in your application or Dockerfile. Instead, use secure methods of configuration like environment variable injection at runtime or secrets management services.
+
+Remember to set these environment variables before running the application, either locally or as part of your deployment process.
+
 ## Getting Started with Docker
 
 The Go URL Shortener can be easily run as a Docker container. Make sure you have Docker installed on your system.
