@@ -49,6 +49,11 @@ import (
 // Logger is a global variable to access the zap logger throughout the logmonitor package.
 var Logger *zap.Logger
 
+// SetLogger sets the logger instance for the package.
+func SetLogger(logger *zap.Logger) {
+	Logger = logger
+}
+
 func init() {
 	// Initialize the zap logger with a development configuration.
 	// This config is console-friendly and outputs logs in plaintext.
@@ -75,7 +80,7 @@ func init() {
 //   - Duration taken to process the request
 //
 // The logs are output in a structured format, making them easy to read and parse.
-func RequestLogger() gin.HandlerFunc {
+func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer to track the duration of the request processing.
 		start := time.Now()
@@ -87,7 +92,7 @@ func RequestLogger() gin.HandlerFunc {
 		duration := time.Since(start)
 
 		// Log details of the request with zap.
-		Logger.Info("request details",
+		logger.Info("request details",
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),
