@@ -1,3 +1,7 @@
+// Package shortid provides functionality to generate cryptographically secure,
+// URL-friendly unique identifiers.
+
+// Copyright (c) 2023 H0llyW00dzZ
 package shortid
 
 import (
@@ -5,25 +9,38 @@ import (
 	"encoding/base64"
 )
 
-// Generate creates a URL-friendly short ID.
+// Generate creates a cryptographically secure, URL-friendly short ID of a specified length.
+// The ID is generated using random bytes, which are then base64 URL encoded to ensure
+// they can be safely used in URLs. The length parameter specifies the desired length
+// of the final encoded ID. If the length is not a multiple of 4, the function compensates
+// to ensure the final ID has the correct length.
+//
+// The function returns the generated short ID or an error if the random byte generation fails.
+//
+// Example usage:
+//
+//	id, err := shortid.Generate(10)
+//	if err != nil {
+//	    log.Fatalf("Failed to generate short ID: %v", err)
+//	}
+//	fmt.Println("Generated short ID:", id)
 func Generate(length int) (string, error) {
-	// Generate a buffer larger than needed to ensure we have enough characters
-	// after base64 encoding to satisfy the requested length.
+	// Calculate the buffer size needed to ensure the base64 encoded string meets the requested length.
 	bufferSize := length * 3 / 4
 	if length%3 != 0 {
 		bufferSize++ // Compensate for partial encoding groups
 	}
 
-	// Generate random bytes
+	// Generate a slice of random bytes.
 	randomBytes := make([]byte, bufferSize)
 	if _, err := rand.Read(randomBytes); err != nil {
 		return "", err
 	}
 
-	// URL-friendly encoding
+	// Encode the random bytes into a URL-friendly base64 string.
 	encoded := base64.URLEncoding.EncodeToString(randomBytes)
 
-	// Ensure we have enough encoded characters to satisfy the requested length
+	// If the encoded string is shorter than the requested length, append more random characters.
 	for len(encoded) < length {
 		extraBytes := make([]byte, 1)
 		if _, err := rand.Read(extraBytes); err != nil {
@@ -32,8 +49,8 @@ func Generate(length int) (string, error) {
 		encoded += base64.URLEncoding.EncodeToString(extraBytes)
 	}
 
-	// Trim to the requested length and remove any base64 padding
+	// Trim the encoded string to the requested length and remove any base64 padding.
 	encoded = encoded[:length]
-	encoded = string([]rune(encoded)) // Convert to slice of runes to handle multi-byte characters
+	encoded = string([]rune(encoded)) // Convert to a slice of runes to handle multi-byte characters.
 	return encoded, nil
 }
