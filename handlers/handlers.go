@@ -15,7 +15,10 @@ import (
 	localDatastore "github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/shortid"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
+
+var Logger *zap.Logger
 
 // InternalOnly creates a middleware that restricts access to a route to internal services only.
 // It checks for a specific header containing a secret value that should match an environment
@@ -77,7 +80,7 @@ func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 		key := cloudDatastore.NameKey("urlz", id, nil)
 		var url localDatastore.URL
 		if err := dsClient.Get(c, key, &url); err != nil {
-			fmt.Printf("Failed to get URL: %v\n", err)
+			Logger.Error("Failed to get URL", zap.String("id", id), zap.Error(err))
 			if err == cloudDatastore.ErrNoSuchEntity {
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 				return
@@ -99,13 +102,14 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 			URL string `json:"url"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
+			Logger.Error("Invalid request", zap.Error(err))
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 			return
 		}
 
 		id, err := shortid.Generate(5) // Generate a 5-character ID
 		if err != nil {
-			fmt.Printf("Failed to generate ID: %v\n", err)
+			Logger.Error("Failed to generate ID", zap.Error(err))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -116,7 +120,7 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 			ID:       id,
 		}
 		if _, err := dsClient.Put(c, key, &url); err != nil {
-			fmt.Printf("Failed to save URL: %v\n", err)
+			Logger.Error("Failed to save URL", zap.String("id", id), zap.Error(err))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
