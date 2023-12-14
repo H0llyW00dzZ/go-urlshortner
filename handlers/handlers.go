@@ -30,6 +30,11 @@ var basePath string
 // It is set once during package initialization.
 var internalSecretValue string
 
+// SetLogger sets the logger instance for the package.
+func SetLogger(logger *zap.Logger) {
+	Logger = logger
+}
+
 func init() {
 	config := zap.NewDevelopmentConfig()
 	var err error

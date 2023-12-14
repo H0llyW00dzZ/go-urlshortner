@@ -16,37 +16,34 @@ import (
 )
 
 func main() {
-	// Ensure that any buffered log entries are flushed before exiting.
-	defer flushLogs()
+	// Initialize the zap logger with a development configuration.
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer logger.Sync() // Flush any buffered log entries
 
-	if err := checkEnvironment(); err != nil {
-		handleStartupFailure(err)
+	// Pass the logger instance to other packages
+	datastore.SetLogger(logger)
+	logmonitor.SetLogger(logger)
+	handlers.SetLogger(logger)
+
+	if err := checkEnvironment(logger); err != nil {
+		handleStartupFailure(err, logger)
 	}
 
 	ctx := datastore.CreateContext()
-	datastoreClient, err := initializeDatastoreClient(ctx)
+	datastoreClient, err := initializeDatastoreClient(ctx, logger)
 	if err != nil {
-		handleStartupFailure(err)
+		handleStartupFailure(err, logger)
 	}
 
-	router := setupRouter(datastoreClient)
-	startServer(router)
+	router := setupRouter(datastoreClient, logger)
+	startServer(router, logger)
 }
 
-func flushLogs() {
-	// Flush logs for all loggers
-	if err := logmonitor.Logger.Sync(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to flush logmonitor log: %v\n", err)
-	}
-	if err := datastore.Logger.Sync(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to flush datastore log: %v\n", err)
-	}
-	if err := handlers.Logger.Sync(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to flush handlers log: %v\n", err)
-	}
-}
-
-func checkEnvironment() error {
+func checkEnvironment(logger *zap.Logger) error {
 	// Check for the presence of required environment variables
 	projectID := os.Getenv("DATASTORE_PROJECT_ID")
 	if projectID == "" {
@@ -55,7 +52,7 @@ func checkEnvironment() error {
 	return nil
 }
 
-func initializeDatastoreClient(ctx context.Context) (*datastore.Client, error) {
+func initializeDatastoreClient(ctx context.Context, logger *zap.Logger) (*datastore.Client, error) {
 	// Create and return a datastore client
 	projectID := os.Getenv("DATASTORE_PROJECT_ID")
 	datastoreClient, err := datastore.CreateDatastoreClient(ctx, projectID)
@@ -65,20 +62,20 @@ func initializeDatastoreClient(ctx context.Context) (*datastore.Client, error) {
 	return datastoreClient, nil
 }
 
-func setupRouter(datastoreClient *datastore.Client) *gin.Engine {
+func setupRouter(datastoreClient *datastore.Client, logger *zap.Logger) *gin.Engine {
 	// Set up the router and middleware
 	if os.Getenv("GIN_MODE") != "debug" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	router := gin.Default()
-	router.Use(logmonitor.RequestLogger())
+	router.Use(logmonitor.RequestLogger(logger))
 	handlers.RegisterHandlersGin(router, datastoreClient)
 
 	return router
 }
 
-func startServer(router *gin.Engine) {
+func startServer(router *gin.Engine, logger *zap.Logger) {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -89,15 +86,20 @@ func startServer(router *gin.Engine) {
 		Handler: router,
 	}
 	// Inform the devops that the server is starting
-	logmonitor.Logger.Info("Listening on address", zap.String("address", server.Addr))
+	logger.Info("Listening on address", zap.String("address", server.Addr))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		logmonitor.Logger.Error("Server failed to start", zap.Error(err))
+		logger.Error("Server failed to start", zap.Error(err))
 		os.Exit(1)
 	}
 }
 
-func handleStartupFailure(err error) {
-	// Handle any startup failures, print errors, and exit
+func handleStartupFailure(err error, logger *zap.Logger) {
+	// Log the error using the provided zap.Logger
+	logger.Error("Startup failure", zap.Error(err))
+
+	// Optionally, print the error using the bannercli package.
 	bannercli.PrintTypingBanner(err.Error(), 100*time.Millisecond)
+
+	// Exit the program with a non-zero status code to indicate failure
 	os.Exit(1)
 }

@@ -33,6 +33,11 @@ var Logger *zap.Logger
 // ErrNotFound is the error returned when a requested entity is not found in the datastore.
 var ErrNotFound = errors.New("datastore: no such entity")
 
+// SetLogger sets the logger instance for the package.
+func SetLogger(logger *zap.Logger) {
+	Logger = logger
+}
+
 func init() {
 	// Initialize the zap logger with a development configuration.
 	// This config is console-friendly and outputs logs in plaintext.
