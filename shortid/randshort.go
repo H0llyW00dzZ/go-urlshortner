@@ -41,8 +41,10 @@ func Generate(length int) (string, error) {
 	encoded := base64.URLEncoding.EncodeToString(randomBytes)
 
 	// If the encoded string is shorter than the requested length, append more random characters.
+	// This loop is inefficient and can be improved.
 	for len(encoded) < length {
-		extraBytes := make([]byte, 1)
+		extraBytesNeeded := length - len(encoded)
+		extraBytes := make([]byte, (extraBytesNeeded*3+3)/4) // Adjusted buffer size calculation
 		if _, err := rand.Read(extraBytes); err != nil {
 			return "", err
 		}
