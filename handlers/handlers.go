@@ -125,46 +125,91 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // the shortened URL; otherwise, it responds with an error.
 func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req struct {
-			URL string `json:"url"`
-		}
-		if err := c.ShouldBindJSON(&req); err != nil {
-			Logger.Error("Invalid request", zap.Error(err))
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-			return
-		}
-
-		id, err := shortid.Generate(5) // Generate a 5-character ID
+		// Extract the original URL from the request body.
+		url, err := extractURL(c)
 		if err != nil {
-			Logger.Error("Failed to generate ID", zap.Error(err))
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			handleError(c, "Invalid request", http.StatusBadRequest, err)
 			return
 		}
 
-		url := &datastore.URL{
-			Original: req.URL,
-			ID:       id,
-		}
-
-		if err := datastore.SaveURL(c, dsClient, url); err != nil {
-			Logger.Error("Failed to save URL", zap.Error(err))
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// Generate a short identifier for the URL.
+		id, err := generateShortID()
+		if err != nil {
+			handleError(c, "Failed to generate ID", http.StatusInternalServerError, err)
 			return
 		}
 
-		// Automatically detect the base URL
-		scheme := c.GetHeader("X-Forwarded-Proto") // Check for the X-Forwarded-Proto header first
-		if scheme == "" {
-			// Fallback to checking if the TLS is not nil
-			if c.Request.TLS != nil {
-				scheme = "https"
-			} else {
-				scheme = "http"
-			}
+		// Save the URL with the generated identifier into the datastore.
+		if err := saveURL(c, dsClient, id, url); err != nil {
+			handleError(c, "Failed to save URL", http.StatusInternalServerError, err)
+			return
 		}
-		baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
 
-		fullShortenedURL := baseURL + "/" + id
+		// Construct the full shortened URL and return it in the response.
+		fullShortenedURL := constructFullShortenedURL(c, id)
 		c.JSON(http.StatusOK, gin.H{"id": id, "shortened_url": fullShortenedURL})
 	}
+}
+
+// extractURL extracts the original URL from the JSON payload in the request.
+func extractURL(c *gin.Context) (string, error) {
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Logger.Error("Invalid request", zap.Error(err))
+		return "", err
+	}
+	return req.URL, nil
+}
+
+// generateShortID generates a short identifier for the URL.
+func generateShortID() (string, error) {
+	return shortid.Generate(5)
+}
+
+// saveURL saves the URL and its identifier to the datastore.
+func saveURL(c *gin.Context, dsClient *datastore.Client, id string, originalURL string) error {
+	url := &datastore.URL{
+		Original: originalURL,
+		ID:       id,
+	}
+	return datastore.SaveURL(c, dsClient, url)
+}
+
+// constructFullShortenedURL constructs the full shortened URL from the request and the base path.
+func constructFullShortenedURL(c *gin.Context, id string) string {
+	// Check for the X-Forwarded-Proto header to determine the scheme.
+	scheme := c.GetHeader("X-Forwarded-Proto")
+	if scheme == "" {
+		// Fallback to checking the TLS property of the request if the header is not set.
+		if c.Request.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+	}
+
+	baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
+	basePath := getBasePath()
+
+	return baseURL + basePath + id
+}
+
+// getBasePath retrieves the base path for the URL from the environment variable or defaults to "/".
+func getBasePath() string {
+	basePath := os.Getenv("CUSTOM_BASE_PATH")
+	if basePath == "" {
+		basePath = "/"
+	}
+	if basePath[len(basePath)-1:] != "/" {
+		basePath += "/"
+	}
+	return basePath
+}
+
+// handleError logs the error and sends a JSON response with the error message and status code.
+func handleError(c *gin.Context, message string, statusCode int, err error) {
+	Logger.Error(message, zap.Error(err))
+	c.AbortWithStatusJSON(statusCode, gin.H{"error": message})
 }
