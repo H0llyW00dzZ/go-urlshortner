@@ -1,3 +1,9 @@
+// Package handlers defines HTTP handlers and middleware for the URL shortener service.
+// It provides functionality to shorten URLs and redirect to original URLs based on the
+// generated short identifiers. The package uses Google Cloud Datastore for storage of
+// the URL mappings and leverages middleware to restrict access to certain operations.
+//
+// Copyright (c) 2023 H0llyW00dzZ
 package handlers
 
 import (
@@ -11,7 +17,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// InternalOnly is a middleware that ensures only internal services can access the route.
+// InternalOnly creates a middleware that restricts access to a route to internal services only.
+// It checks for a specific header containing a secret value that should match an environment
+// variable to allow the request to proceed. If the secret does not match or is not provided,
+// the request is aborted with a 403 Forbidden status.
 func InternalOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get the secret value from an environment variable.
@@ -34,6 +43,9 @@ func InternalOnly() gin.HandlerFunc {
 	}
 }
 
+// RegisterHandlersGin registers the HTTP handlers for the URL shortener service using the Gin
+// web framework. It sets up the routes for retrieving and creating shortened URLs and applies
+// the InternalOnly middleware to the POST route to protect it from public access.
 func RegisterHandlersGin(router *gin.Engine, dsClient *cloudDatastore.Client) {
 	router.GET("/:id", getURLHandlerGin(dsClient))
 
@@ -41,6 +53,9 @@ func RegisterHandlersGin(router *gin.Engine, dsClient *cloudDatastore.Client) {
 	router.POST("/", InternalOnly(), postURLHandlerGin(dsClient))
 }
 
+// getURLHandlerGin returns a Gin handler function that retrieves and redirects to the original
+// URL based on a short identifier provided in the request path. If the identifier is not found
+// or an error occurs, the handler responds with the appropriate HTTP status code and error message.
 func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
@@ -60,6 +75,10 @@ func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 	}
 }
 
+// postURLHandlerGin returns a Gin handler function that handles the creation of a new shortened
+// URL. It expects a JSON payload with the original URL, generates a short identifier, and stores
+// the mapping in Google Cloud Datastore. If successful, it returns the generated identifier and
+// the shortened URL; otherwise, it responds with an error.
 func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
