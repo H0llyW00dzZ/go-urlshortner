@@ -68,10 +68,10 @@ func init() {
 // It is intended to be used as a middleware in a Gin router setup.
 //
 // Upon receiving a request, it logs the following information:
-// - HTTP status code of the response
-// - HTTP method of the request
-// - Requested path
-// - Duration taken to process the request
+//   - HTTP status code of the response
+//   - HTTP method of the request
+//   - Requested path
+//   - Duration taken to process the request
 //
 // The logs are output in a structured format, making them easy to read and parse.
 func RequestLogger() gin.HandlerFunc {
