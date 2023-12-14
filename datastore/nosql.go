@@ -2,21 +2,36 @@
 //
 // It allows for operations such as creating a new client, saving a URL entity,
 // retrieving a URL entity by its ID, and closing the client connection.
+// This version has been updated to use the zap logger for consistent and structured logging.
 //
 // Copyright (c) 2023 H0llyW00dzZ
 package datastore
 
 import (
 	"context"
-	"fmt"
 
 	"cloud.google.com/go/datastore"
+	"go.uber.org/zap"
 )
 
 // URL represents a shortened URL with its original URL and a unique identifier.
 type URL struct {
 	Original string `datastore:"original"` // The original URL.
 	ID       string `datastore:"id"`       // The unique identifier for the shortened URL.
+}
+
+// Logger is a package-level variable to access the zap logger throughout the datastore package.
+var Logger *zap.Logger
+
+func init() {
+	// Initialize the zap logger with a development configuration.
+	// This config is console-friendly and outputs logs in plaintext.
+	config := zap.NewDevelopmentConfig()
+	var err error
+	Logger, err = config.Build()
+	if err != nil {
+		panic(err) // If logger initialization fails, the application will panic.
+	}
 }
 
 // CreateContext creates a new context that can be used for Datastore operations.
@@ -31,7 +46,8 @@ func CreateContext() context.Context {
 func CreateDatastoreClient(ctx context.Context, projectID string) (*datastore.Client, error) {
 	client, err := datastore.NewClient(ctx, projectID)
 	if err != nil {
-		fmt.Printf("Failed to create client: %v\n", err)
+		// Use zap logger to log the error for consistent logging.
+		Logger.Error("Failed to create client", zap.Error(err))
 		return nil, err
 	}
 	return client, nil
@@ -45,7 +61,8 @@ func SaveURL(ctx context.Context, client *datastore.Client, url *URL) error {
 	key := datastore.NameKey("urlz", url.ID, nil)
 	_, err := client.Put(ctx, key, url)
 	if err != nil {
-		fmt.Printf("Failed to save URL: %v\n", err)
+		// Use zap logger to log the error for consistent logging.
+		Logger.Error("Failed to save URL", zap.Error(err))
 		return err
 	}
 	return nil
@@ -59,7 +76,8 @@ func GetURL(ctx context.Context, client *datastore.Client, id string) (*URL, err
 	url := new(URL)
 	err := client.Get(ctx, key, url)
 	if err != nil {
-		fmt.Printf("Failed to get URL: %v\n", err)
+		// Use zap logger to log the error for consistent logging.
+		Logger.Error("Failed to get URL", zap.Error(err))
 		return nil, err
 	}
 	return url, nil
@@ -71,6 +89,7 @@ func GetURL(ctx context.Context, client *datastore.Client, id string) (*URL, err
 func CloseClient(client *datastore.Client) {
 	err := client.Close()
 	if err != nil {
-		fmt.Printf("Failed to close datastore client: %v\n", err)
+		// Use zap logger to log the error for consistent logging.
+		Logger.Error("Failed to close datastore client", zap.Error(err))
 	}
 }
