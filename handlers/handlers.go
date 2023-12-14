@@ -197,16 +197,18 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 
 	baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
 
-	// Ensure that the basePath ends with a slash for this URL construction only.
-	// However, if the basePath is just "/", we don't want to add an extra slash.
-	localBasePath := basePath
-	if localBasePath != "/" && !strings.HasSuffix(localBasePath, "/") {
-		localBasePath += "/"
+	// Normalize the basePath by trimming leading and trailing slashes
+	normalizedBasePath := strings.Trim(basePath, "/")
+
+	// Construct the final URL ensuring there's exactly one slash between each part
+	var fullPath string
+	if normalizedBasePath == "" {
+		fullPath = fmt.Sprintf("%s/%s", baseURL, id)
+	} else {
+		fullPath = fmt.Sprintf("%s/%s/%s", baseURL, normalizedBasePath, id)
 	}
 
-	// Use the localBasePath variable which is guaranteed to end with a slash, unless it's the root "/".
-	// Trim the right slash to avoid double slashes when basePath is root "/".
-	return fmt.Sprintf("%s%s%s", baseURL, strings.TrimRight(localBasePath, "/"), id)
+	return fullPath
 }
 
 // handleError logs the error and sends a JSON response with the error message and status code.
