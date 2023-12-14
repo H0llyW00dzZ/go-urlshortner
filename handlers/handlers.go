@@ -80,12 +80,13 @@ func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 		key := cloudDatastore.NameKey("urlz", id, nil)
 		var url localDatastore.URL
 		if err := dsClient.Get(c, key, &url); err != nil {
-			Logger.Error("Failed to get URL", zap.String("id", id), zap.Error(err))
 			if err == cloudDatastore.ErrNoSuchEntity {
+				Logger.Warn("URL not found", zap.String("id", id)) // Use Warn instead of Error
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 				return
 			}
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			Logger.Error("Failed to get URL", zap.String("id", id), zap.Error(err))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 		c.Redirect(http.StatusFound, url.Original)
