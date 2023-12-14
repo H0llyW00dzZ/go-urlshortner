@@ -1,6 +1,6 @@
 // Package shortid provides functionality to generate cryptographically secure,
 // URL-friendly unique identifiers.
-
+//
 // Copyright (c) 2023 H0llyW00dzZ
 package shortid
 
