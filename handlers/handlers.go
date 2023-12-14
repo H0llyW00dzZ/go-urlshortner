@@ -77,17 +77,30 @@ func getURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 
-		key := cloudDatastore.NameKey("urlz", id, nil)
-		var url localDatastore.URL
-		if err := dsClient.Get(c, key, &url); err != nil {
-			Logger.Error("Failed to get URL", zap.String("id", id), zap.Error(err))
-			if err == cloudDatastore.ErrNoSuchEntity {
+		// Assuming localDatastore.GetURL is a function that correctly handles datastore operations.
+		url, err := localDatastore.GetURL(c, dsClient, id)
+		if err != nil {
+			if err == localDatastore.ErrNotFound {
+				// Entity not found
+				localDatastore.Logger.Warn("URL not found", zap.String("id", id))
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 				return
+			} else {
+				// Some other error occurred
+				localDatastore.Logger.Error("Failed to get URL", zap.String("id", id), zap.Error(err))
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+				return
 			}
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
+		// Check if URL is nil after the GetURL call
+		if url == nil {
+			localDatastore.Logger.Error("URL is nil after GetURL call", zap.String("id", id))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
+
+		// Redirect to the original URL if no error occurred and URL is not nil.
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
