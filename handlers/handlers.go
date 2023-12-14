@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/shortid"
@@ -197,12 +198,14 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 }
 
 // getBasePath retrieves the base path for the URL from the environment variable or defaults to "/".
+// It ensures that the returned base path always ends with a slash.
 func getBasePath() string {
 	basePath := os.Getenv("CUSTOM_BASE_PATH")
 	if basePath == "" {
 		basePath = "/"
 	}
-	if basePath[len(basePath)-1:] != "/" {
+	// Ensure the basePath ends with a slash.
+	if !strings.HasSuffix(basePath, "/") {
 		basePath += "/"
 	}
 	return basePath
