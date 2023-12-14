@@ -28,11 +28,13 @@ The following table lists the environment variables used by the Go URL Shortener
 | `DATASTORE_PROJECT_ID`  | Your Google Cloud Datastore project ID.                      | Yes      | None          |
 | `INTERNAL_SECRET_VALUE` | A secret value used for internal authentication purposes.    | Yes      | None          |
 | `GIN_MODE`              | The mode Gin runs in. Set to "release" for production.       | No       | "debug"       |
+| `CUSTOM_BASE_PATH`      | The base path for the URL shortener API endpoints.           | No       | "/"           |
 
 ### Notes on Environment Variables
 
 - `DATASTORE_PROJECT_ID` and `INTERNAL_SECRET_VALUE` are mandatory for the application to function correctly. Without these, the application will not be able to connect to Google Cloud Datastore or secure its endpoints.
 - `GIN_MODE` is optional and controls the framework's runtime mode. The default mode is "debug", which is suitable for development since it provides detailed logging and error messages. However, it is recommended to set `GIN_MODE` to "release" in a production environment. This turns off debug logging, which can improve performance and prevent the exposure of sensitive information in logs.
+- `CUSTOM_BASE_PATH` is optional and allows you to specify a custom base path for all API endpoints. For example, setting this to `/api/v1/` will prefix the routes for retrieving and creating shortened URLs with `/api/v1/`. If not set, the application will use `/` as the default base path.
 - Always ensure that environment variables containing sensitive information are kept secure. Do not hardcode them in your application or Dockerfile. Instead, use secure methods of configuration like environment variable injection at runtime or secrets management services.
 
 Remember to set these environment variables before running the application, either locally or as part of your deployment process.
