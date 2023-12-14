@@ -139,9 +139,14 @@ func postURLHandlerGin(dsClient *cloudDatastore.Client) gin.HandlerFunc {
 		}
 
 		// Automatically detect the base URL
-		scheme := "http"
-		if c.Request.TLS != nil {
-			scheme = "https"
+		scheme := c.GetHeader("X-Forwarded-Proto") // Check for the X-Forwarded-Proto header first
+		if scheme == "" {
+			// Fallback to checking if the TLS is not nil
+			if c.Request.TLS != nil {
+				scheme = "https"
+			} else {
+				scheme = "http"
+			}
 		}
 		baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
 
