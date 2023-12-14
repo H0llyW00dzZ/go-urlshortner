@@ -15,12 +15,13 @@ import (
 )
 
 func main() {
-	// Ensure that any buffered log entries are flushed before exiting.
+	// Ensure that any buffered log entries from both loggers are flushed before exiting.
 	defer func() {
-		err := logmonitor.Logger.Sync()
-		if err != nil {
-			// Handle the error, perhaps log to stderr or a file
-			fmt.Fprintf(os.Stderr, "Failed to flush log: %v\n", err)
+		if err := logmonitor.Logger.Sync(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to flush logmonitor log: %v\n", err)
+		}
+		if err := datastore.Logger.Sync(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to flush datastore log: %v\n", err)
 		}
 	}()
 
