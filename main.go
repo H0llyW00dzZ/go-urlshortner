@@ -11,9 +11,19 @@ import (
 	"github.com/H0llyW00dzZ/go-urlshortner/handlers"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func main() {
+	// Ensure that any buffered log entries are flushed before exiting.
+	defer func() {
+		err := logmonitor.Logger.Sync()
+		if err != nil {
+			// Handle the error, perhaps log to stderr or a file
+			fmt.Fprintf(os.Stderr, "Failed to flush log: %v\n", err)
+		}
+	}()
+
 	ctx := datastore.CreateContext()
 
 	// Get the project ID from the "DATASTORE_PROJECT_ID" environment variable
@@ -53,10 +63,11 @@ func main() {
 		Handler: router,
 	}
 
-	fmt.Printf("Listening on port %s\n", port)
+	// Inform the user that the server is starting
+	logmonitor.Logger.Info("Listening on port", zap.String("port", port))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		errorMessage := fmt.Sprintf("Server failed to start: %v\n", err)
-		bannercli.PrintTypingBanner(errorMessage, 100*time.Millisecond)
+		// Use zap logger to log the error if initialization was successful
+		logmonitor.Logger.Error("Server failed to start", zap.Error(err))
 		os.Exit(1)
 	}
 }
