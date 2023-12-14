@@ -18,9 +18,10 @@
 //	    router.Run(":8080")
 //	}
 //
-// It is important to call the Logger.Sync() method when the application exits to
-// flush any buffered log entries. This is typically done in the main function using
-// a defer statement.
+// It is important to flush any buffered log entries when the application exits to
+// ensure all logs are written to their destination. This can be achieved by calling
+// the Logger.Sync() method, which is typically done in the main function using
+// defer to ensure it's called even if the application exits unexpectedly.
 //
 // Example:
 //

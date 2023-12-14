@@ -27,7 +27,10 @@ type URL struct {
 }
 
 // Logger is a package-level variable to access the zap logger throughout the datastore package.
+// It is intended to be used by other functions within the package for logging purposes.
 var Logger *zap.Logger
+
+// ErrNotFound is the error returned when a requested entity is not found in the datastore.
 var ErrNotFound = errors.New("datastore: no such entity")
 
 func init() {
@@ -93,11 +96,13 @@ func GetURL(ctx context.Context, dsClient *Client, id string) (*URL, error) {
 
 // CloseClient closes the Datastore client.
 // It should be called to clean up resources and connections when the client is no longer needed.
-// Logs an error if the client could not be closed, but does not return an error.
-func CloseClient(client *Client) {
+// Returns an error if the client could not be closed.
+func CloseClient(client *Client) error {
 	err := client.Close()
 	if err != nil {
 		// Use zap logger to log the error for consistent logging.
 		Logger.Error("Failed to close datastore client", zap.Error(err))
+		return err // Now returning the error so the caller can handle it.
 	}
+	return nil
 }
