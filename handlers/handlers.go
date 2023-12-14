@@ -194,6 +194,11 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 	baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
 	basePath := getBasePath()
 
+	// Ensure the basePath starts with a slash.
+	if !strings.HasPrefix(basePath, "/") {
+		basePath = "/" + basePath
+	}
+
 	return baseURL + basePath + id
 }
 
