@@ -2,6 +2,7 @@
 //
 // It allows for operations such as creating a new client, saving a URL entity,
 // retrieving a URL entity by its ID, and closing the client connection.
+//
 // This version has been updated to use the zap logger for consistent and structured logging.
 //
 // Copyright (c) 2023 H0llyW00dzZ
