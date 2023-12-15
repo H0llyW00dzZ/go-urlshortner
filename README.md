@@ -41,6 +41,9 @@ Remember to set these environment variables before running the application, eith
 
 ## Getting Started with Docker
 
+#### Additional Note:
+> The Go URL Shortener can be deployed on Google Cloud Run, which is Kubernetes-compatible, by configuring the necessary environment variables. The Docker image required for deployment is available on GitHub.
+
 The Go URL Shortener can be easily run as a Docker container. Make sure you have Docker installed on your system.
 
 To get the Docker image of Go URL Shortener, pull the image from the GitHub Container Registry:
