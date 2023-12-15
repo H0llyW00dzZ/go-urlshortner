@@ -182,45 +182,66 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Get the ID from the URL path parameter.
 		id := c.Param("id")
 
-		// Define a struct to bind the JSON payload to.
-		var req UpdateURLPayload
-		if err := c.ShouldBindJSON(&req); err != nil {
+		// Bind the JSON payload to the UpdateURLPayload struct.
+		req, err := bindUpdatePayload(c)
+		if err != nil {
 			handleError(c, "Invalid request", http.StatusBadRequest, err)
 			return
 		}
 
-		// Validate the new URL format.
-		if req.NewURL == "" || !isValidURL(req.NewURL) {
-			handleError(c, "Invalid new URL format", http.StatusBadRequest, fmt.Errorf("invalid new URL format"))
+		// Perform the update operation.
+		if err := updateURL(c, dsClient, id, req); err != nil {
+			handleError(c, err.Error(), http.StatusInternalServerError, err)
 			return
 		}
 
-		// This is an extra step to ensure that the client is aware of the current URL before changing it.
-
-		currentURL, err := datastore.GetURL(c, dsClient, id)
-		if err != nil {
-			handleError(c, "Failed to retrieve URL", http.StatusInternalServerError, err)
-			return
-		}
-		if currentURL.Original != req.OldURL {
-			handleError(c, "URL mismatch", http.StatusBadRequest, fmt.Errorf("provided URL does not match the existing URL"))
-			return
-		}
-
-		// Update the URL in the datastore with the new URL.
-		if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-			handleError(c, "Failed to update URL", http.StatusInternalServerError, err)
-			return
-		}
-
-		// Construct the full shortened URL and return the response.
-		fullShortenedURL := constructFullShortenedURL(c, id)
-		c.JSON(http.StatusOK, gin.H{
-			"id":            id,
-			"shortened_url": fullShortenedURL,
-			"status":        "URL updated successfully",
-		})
+		// Respond with the updated URL information.
+		respondWithUpdatedURL(c, id)
 	}
+}
+
+// bindUpdatePayload binds the JSON payload to the UpdateURLPayload struct and validates the new URL format.
+func bindUpdatePayload(c *gin.Context) (UpdateURLPayload, error) {
+	var req UpdateURLPayload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return req, err
+	}
+
+	if req.NewURL == "" || !isValidURL(req.NewURL) {
+		return req, fmt.Errorf("invalid new URL format")
+	}
+
+	return req, nil
+}
+
+// updateURL retrieves the current URL, verifies it against the provided old URL, and updates it with the new URL.
+// It returns an error with a message suitable for HTTP response if any step fails.
+func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req UpdateURLPayload) error {
+	// Retrieve the current URL to ensure it matches the provided old URL.
+	currentURL, err := datastore.GetURL(c, dsClient, id)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve URL")
+	}
+	if currentURL.Original != req.OldURL {
+		return fmt.Errorf("URL mismatch")
+	}
+
+	// Update the URL in the datastore with the new URL.
+	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
+		return fmt.Errorf("failed to update URL")
+	}
+
+	return nil
+}
+
+// respondWithUpdatedURL constructs and sends a JSON response with the updated URL information.
+func respondWithUpdatedURL(c *gin.Context, id string) {
+	fullShortenedURL := constructFullShortenedURL(c, id)
+	c.JSON(http.StatusOK, gin.H{
+		"id":            id,
+		"shortened_url": fullShortenedURL,
+		"status":        "URL updated successfully",
+	})
 }
 
 // extractURL extracts the original URL from the JSON payload in the request.
