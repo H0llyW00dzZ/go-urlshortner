@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
+	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
 	"github.com/H0llyW00dzZ/go-urlshortner/shortid"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -46,6 +47,12 @@ type CreateURLPayload struct {
 type UpdateURLPayload struct {
 	OldURL string `json:"old_url"`
 	NewURL string `json:"new_url"`
+}
+
+// DeleteURLPayload defines the structure for the JSON payload when deleting a URL.
+type DeleteURLPayload struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
 }
 
 func init() {
@@ -100,7 +107,8 @@ func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) 
 	// the POST route will be "/api/", and the PUT route will be "/api/:id".
 	router.GET(basePath+":id", getURLHandlerGin(datastoreClient))
 	router.POST(basePath, InternalOnly(), postURLHandlerGin(datastoreClient))
-	router.PUT(basePath+":id", InternalOnly(), editURLHandlerGin(datastoreClient)) // New PUT route for editing URLs
+	router.PUT(basePath+":id", InternalOnly(), editURLHandlerGin(datastoreClient))      // New PUT route for editing URLs
+	router.DELETE(basePath+":id", InternalOnly(), deleteURLHandlerGin(datastoreClient)) // New DELETE route for deleting URLs
 }
 
 // getURLHandlerGin returns a Gin handler function that retrieves and redirects to the original
@@ -263,6 +271,73 @@ func extractURL(c *gin.Context) (string, error) {
 	return req.URL, nil
 }
 
+// deleteURLHandlerGin returns a Gin handler function that handles the deletion of an existing shortened URL.
+func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := validateAndDeleteURL(c, dsClient); err != nil {
+			handleDeletionError(c, err)
+		} else {
+			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
+		}
+	}
+}
+
+// handleDeletionError handles errors that occur during the URL deletion process.
+func handleDeletionError(c *gin.Context, err error) {
+	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
+		handleError(c, badRequestErr.UserMessage, http.StatusBadRequest, badRequestErr.Err)
+	} else if err == datastore.ErrNotFound {
+		Logger.Info("URL not found for deletion", zap.Error(err))
+		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
+	} else {
+		Logger.Error("Failed to delete URL", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+	}
+}
+
+// validateAndDeleteURL validates the ID and URL and performs the deletion if they are correct.
+func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
+	idFromPath := c.Param("id") // Extract the ID from the URL path
+
+	// Bind the JSON payload to the DeleteURLPayload struct.
+	var req DeleteURLPayload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return logmonitor.NewBadRequestError("Invalid request payload", err)
+	}
+
+	// Check if the IDs match
+	if idFromPath != req.ID {
+		return logmonitor.NewBadRequestError("Mismatch between path ID and payload ID", fmt.Errorf("path ID and payload ID do not match"))
+	}
+
+	// Validate the URL format.
+	if !isValidURL(req.URL) {
+		return logmonitor.NewBadRequestError("Invalid URL format", fmt.Errorf("invalid URL format"))
+	}
+
+	// Perform the delete operation.
+	return deleteURL(c, dsClient, req.ID, req.URL)
+}
+
+// deleteURL verifies the provided ID and URL against the stored URL entity, and if they match, deletes the URL entity.
+func deleteURL(c *gin.Context, dsClient *datastore.Client, id string, providedURL string) error {
+	// Retrieve the current URL to ensure it matches the provided URL.
+	currentURL, err := datastore.GetURL(c, dsClient, id)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve URL: %v", err)
+	}
+	if currentURL.Original != providedURL {
+		return fmt.Errorf("URL mismatch")
+	}
+
+	// Delete the URL in the datastore.
+	if err := datastore.DeleteURL(c, dsClient, id); err != nil {
+		return fmt.Errorf("failed to delete URL: %v", err)
+	}
+
+	return nil
+}
+
 // generateShortID generates a short identifier for the URL.
 func generateShortID() (string, error) {
 	return shortid.Generate(5)
@@ -308,6 +383,14 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 
 // handleError logs the error and sends a JSON response with the error message and status code.
 func handleError(c *gin.Context, message string, statusCode int, err error) {
-	Logger.Error(message, zap.Error(err))
+	// Use different log levels based on the status code
+	switch {
+	case statusCode >= 500: // 5xx errors are still logged as errors
+		logmonitor.Logger.Error(message, zap.Error(err))
+	case statusCode >= 400: // 4xx errors are logged as warnings
+		logmonitor.Logger.Info(message, zap.Error(err))
+	default: // All other status codes are logged as info
+		logmonitor.Logger.Info(message, zap.Error(err))
+	}
 	c.AbortWithStatusJSON(statusCode, gin.H{"error": message})
 }
