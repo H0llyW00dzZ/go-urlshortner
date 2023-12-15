@@ -105,6 +105,20 @@ Replace `{ShortenedID}` with the actual ID of the shortened URL and `YOURKEY-SEC
 
 You can then access the shortened URL at `https://example-your-deployurl-go-dev.a.run.app/{ShortenedID}`, which will redirect you to the original URL.
 
+### Example Deleting a Short URL
+
+To delete an existing short URL, you will send a `DELETE` request with a JSON payload that contains both the `id` of the short URL and the `url` that is currently associated with that `id`. This operation may also require authentication, which should be provided through a custom internal secret header.
+
+```sh
+curl -X DELETE \
+  https://example-your-deployurl-go-dev.a.run.app/{ShortenedID} \
+  -H 'Content-Type: application/json' \
+  -H 'X-Internal-Secret: YOURKEY-SECRET' \
+  -d '{"id": "{ShortenedID}", "url": "https://golang.org/"}'
+```
+
+Replace `{ShortenedID}` with the actual ID of the shortened URL you wish to delete, `https://golang.org/` with the actual URL associated with that ID, and `YOURKEY-SECRET` with the actual secret key required by your service for authentication.
+
 ## Roadmap
 
 As the project is written in Go, we are considering the development of our own NoSQL database for persistent storage. This would allow us to tailor the storage solution specifically to our needs and avoid dependency on third-party cloud services.
