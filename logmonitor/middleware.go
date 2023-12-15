@@ -59,6 +59,9 @@ func init() {
 	// This config is console-friendly and outputs logs in plaintext.
 	config := zap.NewDevelopmentConfig()
 
+	// Customize the logger configuration here if needed.
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
 	// Customize the level encoder to lowercase (info, warn, etc.)
 	config.EncoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
 
@@ -84,6 +87,8 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer to track the duration of the request processing.
 		start := time.Now()
+		// Format the start time as a string in the desired format.
+		startTimeFormatted := start.Format("2006/01/02 - 15:04:05")
 
 		// Process the request by calling the next handler in the chain.
 		c.Next()
@@ -92,7 +97,8 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 		duration := time.Since(start)
 
 		// Log details of the request with zap.
-		logger.Info("request details",
+		logger.Info("Request Details",
+			zap.String("machine_start_time", startTimeFormatted),
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),

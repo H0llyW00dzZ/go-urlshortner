@@ -36,12 +36,7 @@ func SetLogger(logger *zap.Logger) {
 }
 
 func init() {
-	config := zap.NewDevelopmentConfig()
-	var err error
-	Logger, err = config.Build()
-	if err != nil {
-		panic(err)
-	}
+
 	// Initialize the base path from an environment variable or use "/" as default.
 	basePath = os.Getenv("CUSTOM_BASE_PATH")
 	if basePath == "" {

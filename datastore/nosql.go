@@ -38,17 +38,6 @@ func SetLogger(logger *zap.Logger) {
 	Logger = logger
 }
 
-func init() {
-	// Initialize the zap logger with a development configuration.
-	// This config is console-friendly and outputs logs in plaintext.
-	config := zap.NewDevelopmentConfig()
-	var err error
-	Logger, err = config.Build()
-	if err != nil {
-		panic(err) // If logger initialization fails, the application will panic.
-	}
-}
-
 // CreateContext creates a new context that can be used for Datastore operations.
 // It returns a non-nil, empty context.
 func CreateContext() context.Context {
