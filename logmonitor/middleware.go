@@ -77,6 +77,7 @@ func init() {
 // It is intended to be used as a middleware in a Gin router setup.
 //
 // Upon receiving a request, it logs the following information:
+//   - Machine Start Time (the local time when the request is received by the server)
 //   - HTTP status code of the response
 //   - HTTP method of the request
 //   - Requested path
@@ -98,7 +99,7 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 
 		// Log details of the request with zap.
 		logger.Info("Request Details",
-			zap.String("machine_start_time", startTimeFormatted),
+			zap.String("machine_start_time", startTimeFormatted), // The local time when the request is received
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),
