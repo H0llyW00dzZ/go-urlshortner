@@ -1,3 +1,19 @@
+// Package main/cmd is the entry point for the URL shortener service application.
+// This service provides an HTTP server that handles requests for creating,
+// retrieving, and editing shortened URLs. It uses the Gin web framework for
+// routing and handling HTTP requests, zap for structured logging, and Google
+// Cloud Datastore for storage of URL mappings.
+//
+// The main function initializes the necessary components such as the logger,
+// the Datastore client, and the HTTP router. It also sets up the HTTP server
+// and starts listening for incoming requests. The application's configuration
+// is driven by environment variables, including the Datastore project ID and
+// the desired port for the HTTP server.
+//
+// The service supports a RESTful API for managing URLs and includes middleware
+// for request logging. The application is designed to be deployed as a
+// containerized service, and it is capable of being scaled horizontally to
+// handle high loads.
 package main
 
 import (
