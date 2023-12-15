@@ -9,6 +9,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -33,6 +34,18 @@ var internalSecretValue string
 // SetLogger sets the logger instance for the package.
 func SetLogger(logger *zap.Logger) {
 	Logger = logger
+}
+
+// CreateURLPayload defines the structure for the JSON payload when creating a new URL.
+// It contains a single field, URL, which is the original URL to be shortened.
+type CreateURLPayload struct {
+	URL string `json:"url"`
+}
+
+// UpdateURLPayload defines the structure for the JSON payload when updating an existing URL.
+type UpdateURLPayload struct {
+	OldURL string `json:"old_url"`
+	NewURL string `json:"new_url"`
 }
 
 func init() {
@@ -70,6 +83,12 @@ func InternalOnly() gin.HandlerFunc {
 		// If the header matches, proceed with the request.
 		c.Next()
 	}
+}
+
+// isValidURL checks if the URL is in a valid format.
+func isValidURL(urlStr string) bool {
+	u, err := url.ParseRequestURI(urlStr)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
 // RegisterHandlersGin registers the HTTP handlers for the URL shortener service using the Gin
@@ -131,10 +150,10 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // the shortened URL; otherwise, it responds with an error.
 func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Extract the original URL from the request body.
+		// Extract and validate the original URL from the request body.
 		url, err := extractURL(c)
 		if err != nil {
-			handleError(c, "Invalid request", http.StatusBadRequest, err)
+			handleError(c, "Invalid request payload", http.StatusBadRequest, err)
 			return
 		}
 
@@ -160,39 +179,44 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // editURLHandlerGin returns a Gin handler function that handles the updating of an existing shortened URL.
 func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req struct {
-			ID     string `json:"id"`
-			OldURL string `json:"old_url"`
-			NewURL string `json:"new_url"`
-		}
+		// Get the ID from the URL path parameter.
+		id := c.Param("id")
+
+		// Define a struct to bind the JSON payload to.
+		var req UpdateURLPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			handleError(c, "Invalid request", http.StatusBadRequest, err)
 			return
 		}
 
-		// Retrieve the current URL mapping from the datastore.
-		currentURL, err := datastore.GetURL(c, dsClient, req.ID)
+		// Validate the new URL format.
+		if req.NewURL == "" || !isValidURL(req.NewURL) {
+			handleError(c, "Invalid new URL format", http.StatusBadRequest, fmt.Errorf("invalid new URL format"))
+			return
+		}
+
+		// This is an extra step to ensure that the client is aware of the current URL before changing it.
+
+		currentURL, err := datastore.GetURL(c, dsClient, id)
 		if err != nil {
 			handleError(c, "Failed to retrieve URL", http.StatusInternalServerError, err)
 			return
 		}
-
-		// Check if the current URL matches the old URL provided in the request.
 		if currentURL.Original != req.OldURL {
 			handleError(c, "URL mismatch", http.StatusBadRequest, fmt.Errorf("provided URL does not match the existing URL"))
 			return
 		}
 
 		// Update the URL in the datastore with the new URL.
-		if err := datastore.UpdateURL(c, dsClient, req.ID, req.NewURL); err != nil {
+		if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
 			handleError(c, "Failed to update URL", http.StatusInternalServerError, err)
 			return
 		}
 
 		// Construct the full shortened URL and return the response.
-		fullShortenedURL := constructFullShortenedURL(c, req.ID)
+		fullShortenedURL := constructFullShortenedURL(c, id)
 		c.JSON(http.StatusOK, gin.H{
-			"id":            req.ID,
+			"id":            id,
 			"shortened_url": fullShortenedURL,
 			"status":        "URL updated successfully",
 		})
@@ -201,13 +225,18 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 // extractURL extracts the original URL from the JSON payload in the request.
 func extractURL(c *gin.Context) (string, error) {
-	var req struct {
-		URL string `json:"url"`
-	}
+	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		Logger.Error("Invalid request", zap.Error(err))
+		Logger.Error("Invalid request - JSON binding error", zap.Error(err))
 		return "", err
 	}
+
+	// Check if the URL is in a valid format.
+	if req.URL == "" || !isValidURL(req.URL) {
+		Logger.Error("Invalid URL format", zap.String("url", req.URL))
+		return "", fmt.Errorf("invalid URL format")
+	}
+
 	return req.URL, nil
 }
 
