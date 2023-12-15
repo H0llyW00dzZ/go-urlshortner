@@ -73,12 +73,12 @@ func InternalOnly() gin.HandlerFunc {
 }
 
 // RegisterHandlersGin registers the HTTP handlers for the URL shortener service using the Gin
-// web framework. It sets up the routes for retrieving and creating shortened URLs and applies
-// the InternalOnly middleware to the POST route to protect it from public access.
+// web framework. It sets up the routes for retrieving, creating, and updating shortened URLs.
+// The InternalOnly middleware is applied to the POST and PUT routes to protect them from public access.
 func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) {
 	// Register handlers with the custom or default base path.
-	// For example, if CUSTOM_BASE_PATH is "/api/", the GET route will be "/api/:id" and
-	// the POST route will be "/api/".
+	// For example, if CUSTOM_BASE_PATH is "/api/", the GET route will be "/api/:id",
+	// the POST route will be "/api/", and the PUT route will be "/api/:id".
 	router.GET(basePath+":id", getURLHandlerGin(datastoreClient))
 	router.POST(basePath, InternalOnly(), postURLHandlerGin(datastoreClient))
 	router.PUT(basePath+":id", InternalOnly(), editURLHandlerGin(datastoreClient)) // New PUT route for editing URLs
