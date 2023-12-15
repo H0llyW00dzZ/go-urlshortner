@@ -57,7 +57,11 @@ func SetLogger(logger *zap.Logger) {
 func init() {
 	// Initialize the zap logger with a development configuration.
 	// This config is console-friendly and outputs logs in plaintext.
-	config := zap.NewDevelopmentConfig()
+	// Test ProductionConfig
+	config := zap.NewProductionConfig()
+
+	// Customize the logger configuration here if needed.
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	// Customize the level encoder to lowercase (info, warn, etc.)
 	config.EncoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
