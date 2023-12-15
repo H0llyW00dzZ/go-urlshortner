@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/H0llyW00dzZ/ChatGPT-Next-Web-Session-Exporter/bannercli"
@@ -56,7 +58,7 @@ func main() {
 	}
 
 	router := setupRouter(datastoreClient, logger)
-	startServer(router, logger)
+	startServer(router, logger, datastoreClient)
 }
 
 func checkEnvironment(logger *zap.Logger) error {
@@ -91,22 +93,72 @@ func setupRouter(datastoreClient *datastore.Client, logger *zap.Logger) *gin.Eng
 	return router
 }
 
-func startServer(router *gin.Engine, logger *zap.Logger) {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+// startServer sets up and starts the HTTP server, and waits for a shutdown signal.
+func startServer(router *gin.Engine, logger *zap.Logger, datastoreClient *datastore.Client) {
+	server := createServer(router, logger)
+
+	go runServer(server, logger)
+
+	// Wait for interrupt signal to gracefully shut down the server
+	waitForShutdownSignal(server, logger)
+
+	// Close any other resources such as the datastore client
+	cleanupResources(logger, datastoreClient)
+}
+
+// createServer initializes and returns a new HTTP server with the given router and logger.
+func createServer(router *gin.Engine, logger *zap.Logger) *http.Server {
+	port := getServerPort()
 
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: router,
 	}
-	// Inform the devops that the server is starting
+
+	return server
+}
+
+// getServerPort retrieves the server port from the environment variable or defaults to "8080".
+func getServerPort() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	return port
+}
+
+// runServer starts the server and logs any errors encountered during startup.
+func runServer(server *http.Server, logger *zap.Logger) {
 	logger.Info("Listening on address", zap.String("address", server.Addr))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("Server failed to start", zap.Error(err))
 		os.Exit(1)
 	}
+}
+
+// waitForShutdownSignal blocks until a SIGINT or SIGTERM signal is received, then shuts down the server.
+func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	logger.Info("Shutting down server...")
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Fatal("Server forced to shutdown:", zap.Error(err))
+	}
+}
+
+// cleanupResources gracefully closes the Datastore client and logs any errors encountered.
+func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
+	logger.Info("Closing datastore client...")
+	if err := datastore.CloseClient(datastoreClient); err != nil {
+		logger.Error("Failed to close datastore client", zap.Error(err))
+	}
+
+	logger.Info("Server exiting")
 }
 
 func handleStartupFailure(err error, logger *zap.Logger) {

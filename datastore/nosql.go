@@ -139,11 +139,13 @@ func DeleteURL(ctx context.Context, client *Client, id string) error {
 // It should be called to clean up resources and connections when the client is no longer needed.
 // Returns an error if the client could not be closed.
 func CloseClient(client *Client) error {
+	if client == nil {
+		return nil // or return an error if you expect the client to never be nil
+	}
 	err := client.Close()
 	if err != nil {
-		// Use zap logger to log the error for consistent logging.
 		Logger.Error("Failed to close datastore client", zap.Error(err))
-		return err // Now returning the error so the caller can handle it.
+		return err
 	}
 	return nil
 }
