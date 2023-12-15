@@ -114,13 +114,15 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		url, err := datastore.GetURL(c, dsClient, id)
 		if err != nil {
 			logFields := []zap.Field{
+				zap.String("internal", "Datastore"),
 				zap.String("operation", "getURL"),
 				zap.String("id", id),
 				zap.Error(err),
 			}
 			if err == datastore.ErrNotFound {
 				// Entity not found
-				Logger.Warn("URL not found", logFields...)
+				// Friendly logger not found message for the devops that always monitoring logs
+				Logger.Info("URL not found", logFields...)
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 				return
 			} else {
