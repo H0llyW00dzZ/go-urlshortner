@@ -85,6 +85,20 @@ The service will respond with a JSON object that includes the ID of the shortene
 }
 ```
 
+### Example Editing a Short URL
+
+To edit an existing short URL, you will send a `PUT` request with a JSON payload that contains the `id` of the short URL you want to update, the `old_url` which is the current URL associated with that `id`, and the `new_url` that you want to change it to. This operation also requires the custom internal secret header for authentication purposes.
+
+```sh
+curl -X PUT \
+  https://example-your-deployurl-go-dev.a.run.app/{ShortenedID} \
+  -H 'Content-Type: application/json' \
+  -H 'X-Internal-Secret: YOURKEY-SECRET' \
+  -d '{"id": "{ShortenedID}", "old_url": "https://golang.org/", "new_url": "https://go.dev/"}'
+```
+
+Replace `{ShortenedID}` with the actual ID of the shortened URL and `YOURKEY-SECRET` with the actual secret key required by your deployment.
+
 You can then access the shortened URL at `https://example-your-deployurl-go-dev.a.run.app/{ShortenedID}`, which will redirect you to the original URL.
 
 ## Roadmap
