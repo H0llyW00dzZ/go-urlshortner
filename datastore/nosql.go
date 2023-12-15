@@ -118,6 +118,23 @@ func UpdateURL(ctx context.Context, client *Client, id string, newURL string) er
 	return nil
 }
 
+// DeleteURL deletes a URL entity by its ID from Datastore.
+// It requires a context, a Datastore client, and the ID of the URL entity.
+// Returns an error if the entity could not be deleted.
+func DeleteURL(ctx context.Context, client *Client, id string) error {
+	key := cloudDatastore.NameKey("urlz", id, nil)
+	err := client.Delete(ctx, key)
+	if err != nil {
+		if err == cloudDatastore.ErrNoSuchEntity {
+			return ErrNotFound
+		}
+		// Log and handle other possible errors.
+		Logger.Error("Failed to delete URL", zap.String("id", id), zap.Error(err))
+		return err
+	}
+	return nil
+}
+
 // CloseClient closes the Datastore client.
 // It should be called to clean up resources and connections when the client is no longer needed.
 // Returns an error if the client could not be closed.
