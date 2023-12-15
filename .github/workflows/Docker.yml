@@ -29,7 +29,7 @@ jobs:
 
     - name: Extract tag name
       id: tag_name
-      run: echo "::set-output name=TAG_NAME::${GITHUB_REF#refs/tags/}"
+      run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
     - name: Build and Push Docker image
       uses: docker/build-push-action@v3
@@ -38,7 +38,7 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: |
-          ghcr.io/h0llyw00dzz/go-urlshortener:${{ steps.tag_name.outputs.TAG_NAME }}
+          ghcr.io/h0llyw00dzz/go-urlshortener:${{ env.TAG_NAME }}
           ghcr.io/h0llyw00dzz/go-urlshortener:latest
 
     - name: Clean up Buildx builder
