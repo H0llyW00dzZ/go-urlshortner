@@ -88,6 +88,35 @@ func GetURL(ctx context.Context, dsClient *Client, id string) (*URL, error) {
 	return url, nil
 }
 
+// UpdateURL updates an existing URL entity in Datastore with a new URL.
+// It requires a context, a Datastore client, the ID of the URL entity, and the new URL to update.
+// Returns an error if the URL entity could not be updated.
+func UpdateURL(ctx context.Context, client *Client, id string, newURL string) error {
+	key := cloudDatastore.NameKey("urlz", id, nil)
+	// Transactionally retrieve the existing URL and update it.
+	_, err := client.RunInTransaction(ctx, func(tx *cloudDatastore.Transaction) error {
+		url := new(URL)
+		if err := tx.Get(key, url); err != nil {
+			if err == cloudDatastore.ErrNoSuchEntity {
+				return ErrNotFound
+			}
+			return err
+		}
+
+		// Update the URL's Original field with the new URL.
+		url.Original = newURL
+		_, err := tx.Put(key, url)
+		return err
+	})
+
+	if err != nil {
+		Logger.Error("Failed to update URL", zap.String("id", id), zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
 // CloseClient closes the Datastore client.
 // It should be called to clean up resources and connections when the client is no longer needed.
 // Returns an error if the client could not be closed.
