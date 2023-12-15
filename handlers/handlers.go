@@ -81,6 +81,7 @@ func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) 
 	// the POST route will be "/api/".
 	router.GET(basePath+":id", getURLHandlerGin(datastoreClient))
 	router.POST(basePath, InternalOnly(), postURLHandlerGin(datastoreClient))
+	router.PUT(basePath+":id", InternalOnly(), editURLHandlerGin(datastoreClient)) // New PUT route for editing URLs
 }
 
 // getURLHandlerGin returns a Gin handler function that retrieves and redirects to the original
@@ -153,6 +154,48 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
 		c.JSON(http.StatusOK, gin.H{"id": id, "shortened_url": fullShortenedURL})
+	}
+}
+
+// editURLHandlerGin returns a Gin handler function that handles the updating of an existing shortened URL.
+func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			ID     string `json:"id"`
+			OldURL string `json:"old_url"`
+			NewURL string `json:"new_url"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			handleError(c, "Invalid request", http.StatusBadRequest, err)
+			return
+		}
+
+		// Retrieve the current URL mapping from the datastore.
+		currentURL, err := datastore.GetURL(c, dsClient, req.ID)
+		if err != nil {
+			handleError(c, "Failed to retrieve URL", http.StatusInternalServerError, err)
+			return
+		}
+
+		// Check if the current URL matches the old URL provided in the request.
+		if currentURL.Original != req.OldURL {
+			handleError(c, "URL mismatch", http.StatusBadRequest, fmt.Errorf("provided URL does not match the existing URL"))
+			return
+		}
+
+		// Update the URL in the datastore with the new URL.
+		if err := datastore.UpdateURL(c, dsClient, req.ID, req.NewURL); err != nil {
+			handleError(c, "Failed to update URL", http.StatusInternalServerError, err)
+			return
+		}
+
+		// Construct the full shortened URL and return the response.
+		fullShortenedURL := constructFullShortenedURL(c, req.ID)
+		c.JSON(http.StatusOK, gin.H{
+			"id":            req.ID,
+			"shortened_url": fullShortenedURL,
+			"status":        "URL updated successfully",
+		})
 	}
 }
 
