@@ -74,6 +74,16 @@ func init() {
 	}
 }
 
+// createLogFields generates common log fields for use in various handlers.
+func createLogFields(operation, id string, err error) []zap.Field {
+	return []zap.Field{
+		zap.String("internal", "Datastore"),
+		zap.String("operation", operation),
+		zap.String("id", id),
+		zap.Error(err),
+	}
+}
+
 // InternalOnly creates a middleware that restricts access to a route to internal services only.
 // It checks for a specific header containing a secret value that should match an environment
 // variable to allow the request to proceed. If the secret does not match or is not provided,
@@ -121,23 +131,15 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Assuming datastore.GetURL is a function that correctly handles datastore operations.
 		url, err := datastore.GetURL(c, dsClient, id)
 		if err != nil {
-			logFields := []zap.Field{
-				zap.String("internal", "Datastore"),
-				zap.String("operation", "getURL"),
-				zap.String("id", id),
-				zap.Error(err),
-			}
+			logFields := createLogFields("getURL", id, err)
 			if err == datastore.ErrNotFound {
-				// Entity not found
-				// Friendly logger not found message for the devops that always monitoring logs
 				Logger.Info("URL not found", logFields...)
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
-				return
 			} else {
 				Logger.Error("Failed to get URL", logFields...)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-				return
 			}
+			return
 		}
 
 		// Check if URL is nil after the GetURL call
@@ -150,6 +152,8 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
+		logFields := createLogFields("getURL", id, nil)
+		Logger.Info("URL retrieved successfully", logFields...)
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
@@ -180,6 +184,9 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
+		logFields := createLogFields("postURL", id, nil)
+		Logger.Info("URL shortened and saved", logFields...)
+
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
 		c.JSON(http.StatusOK, gin.H{"id": id, "shortened_url": fullShortenedURL})
@@ -206,6 +213,8 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Respond with the updated URL information.
+		logFields := createLogFields("editURL", id, nil)
+		Logger.Info("URL updated successfully", logFields...)
 		respondWithUpdatedURL(c, id)
 	}
 }
@@ -277,6 +286,8 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		if err := validateAndDeleteURL(c, dsClient); err != nil {
 			handleDeletionError(c, err)
 		} else {
+			logFields := createLogFields("deleteURL", c.Param("id"), nil) // No error at this point
+			Logger.Info("URL deleted successfully", logFields...)
 			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
 		}
 	}
@@ -287,10 +298,14 @@ func handleDeletionError(c *gin.Context, err error) {
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
 		handleError(c, badRequestErr.UserMessage, http.StatusBadRequest, badRequestErr.Err)
 	} else if err == datastore.ErrNotFound {
-		Logger.Info("URL not found for deletion", zap.Error(err))
-		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
+		// Log with info level and return a 404 Not Found error
+		logFields := createLogFields("deleteURL", c.Param("id"), err)
+		Logger.Info("URL not found for deletion", logFields...)
+		c.JSON(http.StatusNotFound, gin.H{"error": "ID and URL not found"})
 	} else {
-		Logger.Error("Failed to delete URL", zap.Error(err))
+		// Log with error level and return a 500 Internal Server Error
+		logFields := createLogFields("deleteURL", c.Param("id"), err)
+		Logger.Error("Failed to delete URL", logFields...)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 	}
 }
@@ -321,20 +336,35 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 
 // deleteURL verifies the provided ID and URL against the stored URL entity, and if they match, deletes the URL entity.
 func deleteURL(c *gin.Context, dsClient *datastore.Client, id string, providedURL string) error {
-	// Retrieve the current URL to ensure it matches the provided URL.
-	currentURL, err := datastore.GetURL(c, dsClient, id)
+	currentURL, err := getCurrentURL(c, dsClient, id)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve URL: %v", err)
+		return err // getCurrentURL will return a formatted error or datastore.ErrNotFound
 	}
+
 	if currentURL.Original != providedURL {
 		return fmt.Errorf("URL mismatch")
 	}
 
-	// Delete the URL in the datastore.
+	return performDelete(c, dsClient, id)
+}
+
+// getCurrentURL retrieves the current URL from the datastore and checks for errors.
+func getCurrentURL(c *gin.Context, dsClient *datastore.Client, id string) (*datastore.URL, error) {
+	currentURL, err := datastore.GetURL(c, dsClient, id)
+	if err != nil {
+		if err == datastore.ErrNotFound {
+			return nil, datastore.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to retrieve URL: %v", err)
+	}
+	return currentURL, nil
+}
+
+// performDelete deletes the URL entity from the datastore.
+func performDelete(c *gin.Context, dsClient *datastore.Client, id string) error {
 	if err := datastore.DeleteURL(c, dsClient, id); err != nil {
 		return fmt.Errorf("failed to delete URL: %v", err)
 	}
-
 	return nil
 }
 
