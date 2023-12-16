@@ -52,7 +52,7 @@ func main() {
 	}
 
 	ctx := datastore.CreateContext()
-	datastoreClient, err := initializeDatastoreClient(ctx, logger)
+	datastoreClient, err := setupDatastoreClient(ctx, logger)
 	if err != nil {
 		handleStartupFailure(err, logger)
 	}
@@ -61,6 +61,40 @@ func main() {
 	startServer(router, logger, datastoreClient)
 }
 
+// setupDatastoreClient creates a new Datastore client and performs a test operation to check connectivity.
+func setupDatastoreClient(ctx context.Context, logger *zap.Logger) (*datastore.Client, error) {
+	projectID := os.Getenv("DATASTORE_PROJECT_ID")
+	datastoreConfig := datastore.NewConfig(logger, projectID)
+	datastoreClient, err := datastore.CreateDatastoreClient(ctx, datastoreConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create datastore client: %v", err)
+	}
+
+	if err := testClientConnection(ctx, datastoreClient); err != nil {
+		return nil, err
+	}
+
+	return datastoreClient, nil
+}
+
+// testClientConnection attempts to perform a test operation with the Datastore client to check connectivity.
+func testClientConnection(ctx context.Context, client *datastore.Client) error {
+	// Perform a test operation, such as a health check read
+	// Assuming 'health_check' is a known entity for this purpose
+	_, err := datastore.GetURL(ctx, client, "health_check")
+	if err == datastore.ErrNotFound {
+		// If the specific test entity is not found, that's okay for a health check.
+		// It means the client is connected and authorized; the entity just doesn't exist.
+		return nil
+	} else if err != nil {
+		// Any other error means there's a problem with the connection or authorization.
+		return fmt.Errorf("datastore client failed health check: %v", err)
+	}
+	// If there's no error, the client is connected and working.
+	return nil
+}
+
+// checkEnvironment checks for the presence of required environment variables.
 func checkEnvironment(logger *zap.Logger) error {
 	// Check for the presence of required environment variables
 	projectID := os.Getenv("DATASTORE_PROJECT_ID")
@@ -70,16 +104,19 @@ func checkEnvironment(logger *zap.Logger) error {
 	return nil
 }
 
+// initializeDatastoreClient is a helper function to create a new Datastore client.
 func initializeDatastoreClient(ctx context.Context, logger *zap.Logger) (*datastore.Client, error) {
 	// Create and return a datastore client
 	projectID := os.Getenv("DATASTORE_PROJECT_ID")
-	datastoreClient, err := datastore.CreateDatastoreClient(ctx, projectID)
+	datastoreConfig := datastore.NewConfig(logger, projectID)                     // Create a new Config instance
+	datastoreClient, err := datastore.CreateDatastoreClient(ctx, datastoreConfig) // Pass the config
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create datastore client: %v", err)
+		return nil, fmt.Errorf("failed to create datastore client: %v", err)
 	}
 	return datastoreClient, nil
 }
 
+// setupRouter creates a new Gin router and sets up the middleware.
 func setupRouter(datastoreClient *datastore.Client, logger *zap.Logger) *gin.Engine {
 	// Set up the router and middleware
 	if os.Getenv("GIN_MODE") != "debug" {
