@@ -199,13 +199,15 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
+		logFields := logmonitor.CreateLogFields("editURL",
+			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+			logmonitor.WithID(id),
+			logmonitor.WithError(err), // Include the error here, but it will be nil if there's no error
+		)
+
 		// Perform the update operation.
 		err = updateURL(c, dsClient, id, req)
 		if err != nil {
-			logFields := logmonitor.CreateLogFields("editURL",
-				logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
-				logmonitor.WithID(id),
-			)
 			if strings.Contains(err.Error(), "URL mismatch") {
 				handleError(c, err.Error(), http.StatusBadRequest, err)
 				logmonitor.Logger.Info("🔄  ❌  URL mismatch", logFields...)
@@ -217,11 +219,6 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Respond with the updated URL information.
-		logFields := logmonitor.CreateLogFields("editURL",
-			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithID(id),
-		)
-
 		logmonitor.Logger.Info("🔗  🆕  ✅  URL updated successfully", logFields...)
 		respondWithUpdatedURL(c, id)
 	}
@@ -292,15 +289,14 @@ func extractURL(c *gin.Context) (string, error) {
 // deleteURLHandlerGin returns a Gin handler function that handles the deletion of an existing shortened URL.
 func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Use the centralized logging function from logmonitor package
+		logFields := logmonitor.CreateLogFields("deleteURL",
+			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+			logmonitor.WithID(c.Param("id")),
+		)
 		if err := validateAndDeleteURL(c, dsClient); err != nil {
 			handleDeletionError(c, err)
 		} else {
-			// Use the centralized logging function from logmonitor package
-			logFields := logmonitor.CreateLogFields("deleteURL",
-				logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
-				logmonitor.WithID(c.Param("id")),
-			)
-
 			logmonitor.Logger.Info("🔗  🗑️  ✅  URL deleted successfully", logFields...)
 			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
 		}
