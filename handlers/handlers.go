@@ -202,10 +202,16 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Perform the update operation.
 		err = updateURL(c, dsClient, id, req)
 		if err != nil {
+			logFields := logmonitor.CreateLogFields("editURL",
+				logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+				logmonitor.WithID(id),
+			)
 			if strings.Contains(err.Error(), "URL mismatch") {
 				handleError(c, err.Error(), http.StatusBadRequest, err)
+				logmonitor.Logger.Info("🔄  ❌  URL mismatch", logFields...)
 			} else {
 				handleError(c, err.Error(), http.StatusInternalServerError, err)
+				logmonitor.Logger.Info("🚨  ⚠️  Failed to update URL", logFields...)
 			}
 			return
 		}
@@ -241,16 +247,16 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 	// Retrieve the current URL to ensure it matches the provided old URL.
 	currentURL, err := datastore.GetURL(c, dsClient, id)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve URL: %w", err)
+		return fmt.Errorf("failed to retrieve URL")
 	}
 	if currentURL.Original != req.OldURL {
 		// Instead of panicking, return an error that indicates a URL mismatch.
-		return fmt.Errorf("URL mismatch: expected %s, got %s", currentURL.Original, req.OldURL)
+		return fmt.Errorf("URL mismatch")
 	}
 
 	// Update the URL in the datastore with the new URL.
 	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-		return fmt.Errorf("failed to update URL: %w", err)
+		return fmt.Errorf("failed to update URL")
 	}
 
 	return nil
@@ -433,16 +439,6 @@ func handleError(c *gin.Context, message string, statusCode int, err error) {
 	case statusCode >= 500: // 5xx errors are still logged as errors
 		emoji = "🆘  ⚠️  "
 		logmonitor.Logger.Error(emoji+" "+message, zap.Error(err))
-	case statusCode >= 400: // 4xx errors are logged as warnings
-		if strings.Contains(message, "URL mismatch") {
-			emoji = "🔄  ❌  "
-		} else {
-			emoji = "🚨  ⚠️  "
-		}
-		logmonitor.Logger.Info(emoji+" "+message, zap.Error(err))
-	default: // All other status codes are logged as info
-		emoji = "✅  "
-		logmonitor.Logger.Info(emoji+" "+message, zap.Error(err))
 	}
 
 	c.AbortWithStatusJSON(statusCode, gin.H{"error": message})
