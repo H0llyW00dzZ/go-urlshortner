@@ -62,6 +62,7 @@ func init() {
 	}
 
 	// Initialize the internal secret value from an environment variable.
+	// Note: This is important and secure because it resides deep within the binary internals and should not be left unset in production.
 	internalSecretValue = os.Getenv("INTERNAL_SECRET_VALUE")
 	if internalSecretValue == "" {
 		panic("INTERNAL_SECRET_VALUE is not set")
