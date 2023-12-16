@@ -1,9 +1,3 @@
-// Package handlers defines HTTP handlers and middleware for the URL shortener service.
-// It provides functionality to shorten URLs and redirect to original URLs based on the
-// generated short identifiers. The package uses Google Cloud Datastore for storage of
-// the URL mappings and leverages middleware to restrict access to certain operations.
-//
-// Copyright (c) 2023 H0llyW00dzZ
 package handlers
 
 import (
