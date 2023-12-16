@@ -60,6 +60,9 @@ type BadRequestError struct {
 	Err         error
 }
 
+// LogFieldOption defines a function signature for options that can be passed to createLogFields.
+type LogFieldOption func() zap.Field
+
 func init() {
 	// Initialize the zap logger with a development configuration.
 	// This config is console-friendly and outputs logs in plaintext.
@@ -76,6 +79,34 @@ func init() {
 	Logger, err = config.Build()
 	if err != nil {
 		panic(err)
+	}
+}
+
+// CreateLogFields generates common log fields for use in various parts of the application.
+func CreateLogFields(operation string, options ...LogFieldOption) []zap.Field {
+	fields := []zap.Field{
+		zap.String("internal", "datastore"),
+		zap.String("operation", operation),
+	}
+
+	for _, opt := range options {
+		fields = append(fields, opt())
+	}
+
+	return fields
+}
+
+// WithID returns a LogFieldOption that adds an 'id' field to the log.
+func WithID(id string) LogFieldOption {
+	return func() zap.Field {
+		return zap.String("id", id)
+	}
+}
+
+// WithError returns a LogFieldOption that adds an 'error' field to the log.
+func WithError(err error) LogFieldOption {
+	return func() zap.Field {
+		return zap.Error(err)
 	}
 }
 
