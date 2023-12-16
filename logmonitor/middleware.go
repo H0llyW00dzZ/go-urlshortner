@@ -1,6 +1,7 @@
 package logmonitor
 
 import (
+	"os"
 	"time"
 
 	"go.uber.org/zap"
@@ -16,6 +17,7 @@ const (
 	ComponentCache             = "cache" // Currently unused.
 	ComponentProjectIDENV      = "projectid"
 	ComponentInternalSecretENV = "customsecretkey"
+	ComponentMachineOperation  = "signal"
 )
 
 // Logger is a global variable to access the zap logger throughout the logmonitor package.
@@ -85,6 +87,13 @@ func WithID(id string) LogFieldOption {
 func WithError(err error) LogFieldOption {
 	return func() zap.Field {
 		return zap.Error(err)
+	}
+}
+
+// WithSignal returns a LogFieldOption that adds a 'signal' field to the log.
+func WithSignal(signal os.Signal) LogFieldOption {
+	return func() zap.Field {
+		return zap.String("notify", signal.String())
 	}
 }
 
