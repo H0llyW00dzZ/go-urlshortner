@@ -314,7 +314,7 @@ func handleDeletionError(c *gin.Context, err error) {
 	)
 
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		logmonitor.Logger.Info(badRequestErr.UserMessage, logFields...)
+		logmonitor.Logger.Info("🚨  ⚠️  Failed to validate deletion URL", logFields...)
 		c.JSON(http.StatusBadRequest, gin.H{"error": badRequestErr.UserMessage})
 	} else if err == datastore.ErrNotFound {
 		logmonitor.Logger.Info("🚨  ⚠️  URL not found for deletion", logFields...)
@@ -332,17 +332,17 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 	// Bind the JSON payload to the DeleteURLPayload struct.
 	var req DeleteURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		return logmonitor.NewBadRequestError("🚨  ⚠️  Invalid request payload", err)
+		return logmonitor.NewBadRequestError("Invalid request payload", err)
 	}
 
 	// Check if the IDs match
 	if idFromPath != req.ID {
-		return logmonitor.NewBadRequestError("🚨  ⚠️  Mismatch between path ID and payload ID", fmt.Errorf("path ID and payload ID do not match"))
+		return logmonitor.NewBadRequestError("Mismatch between path ID and payload ID", fmt.Errorf("path ID and payload ID do not match"))
 	}
 
 	// Validate the URL format.
 	if !isValidURL(req.URL) {
-		return logmonitor.NewBadRequestError("🚨  ⚠️  Invalid URL format", fmt.Errorf("invalid URL format"))
+		return logmonitor.NewBadRequestError("Invalid URL format", fmt.Errorf("invalid URL format"))
 	}
 
 	// Perform the delete operation.
