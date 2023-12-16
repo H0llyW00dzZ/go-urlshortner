@@ -1,40 +1,3 @@
-// Package logmonitor provides logging utilities for a web application.
-// It leverages the zap logging library to offer structured, leveled logging.
-// The package is designed to integrate with the Gin web framework and includes
-// middleware that logs incoming HTTP requests, including response status, method,
-// path, and the time taken to process each request.
-//
-// The logger is initialized with a development-friendly configuration that outputs
-// logs in a human-readable, color-coded format, suitable for development and debugging.
-// The RequestLogger middleware can be easily added to a Gin router to enhance request
-// logging with detailed information that can help in monitoring and troubleshooting.
-//
-// Example:
-//
-//	func main() {
-//	    router := gin.Default()
-//	    router.Use(logmonitor.RequestLogger())
-//	    // ... other middlewares and routes ...
-//	    router.Run(":8080")
-//	}
-//
-// It is important to flush any buffered log entries when the application exits to
-// ensure all logs are written to their destination. This can be achieved by calling
-// the Logger.Sync() method, which is typically done in the main function using
-// defer to ensure it's called even if the application exits unexpectedly.
-//
-// Example:
-//
-//	func main() {
-//	    defer func() {
-//	        if err := logmonitor.Logger.Sync(); err != nil {
-//	            fmt.Fprintf(os.Stderr, "Failed to flush log: %v\n", err)
-//	        }
-//	    }()
-//	    // ... rest of the main function ...
-//	}
-//
-// Copyright (c) 2023 H0llyW00dzZ
 package logmonitor
 
 import (
@@ -44,6 +7,13 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/gin-gonic/gin"
+)
+
+// Component constants for structured logging.
+// This is used to identify the component that is logging the message.
+const (
+	ComponentNoSQL = "datastore"
+	ComponentCache = "cache" // Currently unused.
 )
 
 // Logger is a global variable to access the zap logger throughout the logmonitor package.
@@ -85,7 +55,6 @@ func init() {
 // CreateLogFields generates common log fields for use in various parts of the application.
 func CreateLogFields(operation string, options ...LogFieldOption) []zap.Field {
 	fields := []zap.Field{
-		zap.String("internal", "datastore"),
 		zap.String("operation", operation),
 	}
 
@@ -94,6 +63,13 @@ func CreateLogFields(operation string, options ...LogFieldOption) []zap.Field {
 	}
 
 	return fields
+}
+
+// WithComponent returns a LogFieldOption that adds an 'internal' field to the log.
+func WithComponent(component string) LogFieldOption {
+	return func() zap.Field {
+		return zap.String("internal", component)
+	}
 }
 
 // WithID returns a LogFieldOption that adds an 'id' field to the log.
