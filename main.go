@@ -88,7 +88,7 @@ func testClientConnection(ctx context.Context, client *datastore.Client) error {
 		return nil
 	} else if err != nil {
 		// Any other error means there's a problem with the connection or authorization.
-		return fmt.Errorf("Datastore client failed health check: %v", err)
+		return fmt.Errorf("datastore client failed health check: %v", err)
 	}
 	// If there's no error, the client is connected and working.
 	return nil
@@ -168,7 +168,13 @@ func getServerPort() string {
 func runServer(server *http.Server, logger *zap.Logger) {
 	logger.Info("Server is starting and Listening on address", zap.String("address", server.Addr))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		logger.Error("Server failed to start", zap.Error(err))
+		logFields := logmonitor.CreateLogFields("runServer",
+			logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
+			logmonitor.WithComponent(logmonitor.ComponentProjectIDENV),      // Use the constant ComponentProjectIDENV for the component
+			logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
+			logmonitor.WithError(err),                                       // Include the error here, but it will be nil if there's no error
+		)
+		logger.Error("Server failed to start", logFields...)
 		os.Exit(1)
 	}
 }
@@ -203,7 +209,13 @@ func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
 
 func handleStartupFailure(err error, logger *zap.Logger) {
 	// Log the error using the provided zap.Logger
-	logger.Error("Startup failure", zap.Error(err))
+	logFields := logmonitor.CreateLogFields("handleStartupFailure",
+		logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
+		logmonitor.WithComponent(logmonitor.ComponentProjectIDENV),      // Use the constant ComponentProjectIDENV for the component
+		logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
+		logmonitor.WithError(err),                                       // Include the error here, but it will be nil if there's no error
+	)
+	logger.Error("Startup failure", logFields...)
 
 	// Optionally, print the error using the bannercli package.
 	bannercli.PrintTypingBanner(err.Error(), 100*time.Millisecond)
