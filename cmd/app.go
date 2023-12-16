@@ -129,7 +129,7 @@ func getServerPort() string {
 
 // runServer starts the server and logs any errors encountered during startup.
 func runServer(server *http.Server, logger *zap.Logger) {
-	logger.Info("Listening on address", zap.String("address", server.Addr))
+	logger.Info("Server is starting and Listening on address", zap.String("address", server.Addr))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("Server failed to start", zap.Error(err))
 		os.Exit(1)
@@ -140,7 +140,10 @@ func runServer(server *http.Server, logger *zap.Logger) {
 func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
+	// Testing human readable logging
+	// Gopher will tell info to that devops always monitor the logs
+	s := <-quit
+	logger.Info("Received shutdown signal", zap.String("signal", s.String()))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
