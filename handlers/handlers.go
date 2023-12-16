@@ -74,16 +74,6 @@ func init() {
 	}
 }
 
-// createLogFields generates common log fields for use in various handlers.
-func createLogFields(operation, id string, err error) []zap.Field {
-	return []zap.Field{
-		zap.String("internal", "Datastore"),
-		zap.String("operation", operation),
-		zap.String("id", id),
-		zap.Error(err),
-	}
-}
-
 // InternalOnly creates a middleware that restricts access to a route to internal services only.
 // It checks for a specific header containing a secret value that should match an environment
 // variable to allow the request to proceed. If the secret does not match or is not provided,
@@ -130,13 +120,15 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 		// Assuming datastore.GetURL is a function that correctly handles datastore operations.
 		url, err := datastore.GetURL(c, dsClient, id)
+		// Declare logFields here so it's accessible throughout the function scope
+		logFields := logmonitor.CreateLogFields("getURL", logmonitor.WithID(id), logmonitor.WithError(err))
+
 		if err != nil {
-			logFields := createLogFields("getURL", id, err)
 			if err == datastore.ErrNotFound {
-				Logger.Info("URL not found", logFields...)
+				logmonitor.Logger.Info("URL not found", logFields...)
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 			} else {
-				Logger.Error("Failed to get URL", logFields...)
+				logmonitor.Logger.Error("Failed to get URL", logFields...)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			}
 			return
@@ -144,7 +136,7 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 		// Check if URL is nil after the GetURL call
 		if url == nil {
-			Logger.Error("URL is nil after GetURL call",
+			logmonitor.Logger.Error("URL is nil after GetURL call",
 				zap.String("operation", "getURL"),
 				zap.String("id", id),
 			)
@@ -152,8 +144,9 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		logFields := createLogFields("getURL", id, nil)
-		Logger.Info("URL retrieved successfully", logFields...)
+		// Remove the WithError since there's no error in this case
+		logFields = logmonitor.CreateLogFields("getURL", logmonitor.WithID(id))
+		logmonitor.Logger.Info("URL retrieved successfully", logFields...)
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
@@ -184,8 +177,8 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		logFields := createLogFields("postURL", id, nil)
-		Logger.Info("URL shortened and saved", logFields...)
+		logFields := logmonitor.CreateLogFields("postURL", logmonitor.WithID(id))
+		logmonitor.Logger.Info("URL shortened and saved", logFields...)
 
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
@@ -213,8 +206,8 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Respond with the updated URL information.
-		logFields := createLogFields("editURL", id, nil)
-		Logger.Info("URL updated successfully", logFields...)
+		logFields := logmonitor.CreateLogFields("editURL", logmonitor.WithID(id))
+		logmonitor.Logger.Info("URL updated successfully", logFields...)
 		respondWithUpdatedURL(c, id)
 	}
 }
@@ -286,8 +279,9 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		if err := validateAndDeleteURL(c, dsClient); err != nil {
 			handleDeletionError(c, err)
 		} else {
-			logFields := createLogFields("deleteURL", c.Param("id"), nil) // No error at this point
-			Logger.Info("URL deleted successfully", logFields...)
+			// Use the centralized logging function from logmonitor package
+			logFields := logmonitor.CreateLogFields("deleteURL", logmonitor.WithID(c.Param("id")))
+			logmonitor.Logger.Info("URL deleted successfully", logFields...)
 			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
 		}
 	}
@@ -295,17 +289,17 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 // handleDeletionError handles errors that occur during the URL deletion process.
 func handleDeletionError(c *gin.Context, err error) {
+	id := c.Param("id")
+	// Use the centralized logging function from logmonitor package
+	logFields := logmonitor.CreateLogFields("deleteURL", logmonitor.WithID(id), logmonitor.WithError(err))
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		handleError(c, badRequestErr.UserMessage, http.StatusBadRequest, badRequestErr.Err)
+		logmonitor.Logger.Info(badRequestErr.UserMessage, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{"error": badRequestErr.UserMessage})
 	} else if err == datastore.ErrNotFound {
-		// Log with info level and return a 404 Not Found error
-		logFields := createLogFields("deleteURL", c.Param("id"), err)
-		Logger.Info("URL not found for deletion", logFields...)
+		logmonitor.Logger.Info("URL not found for deletion", logFields...)
 		c.JSON(http.StatusNotFound, gin.H{"error": "ID and URL not found"})
 	} else {
-		// Log with error level and return a 500 Internal Server Error
-		logFields := createLogFields("deleteURL", c.Param("id"), err)
-		Logger.Error("Failed to delete URL", logFields...)
+		logmonitor.Logger.Error("Failed to delete URL", logFields...)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 	}
 }
