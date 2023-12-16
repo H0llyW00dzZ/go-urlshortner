@@ -19,6 +19,12 @@ type URL struct {
 	ID       string `datastore:"id"`       // The unique identifier for the shortened URL.
 }
 
+// Config holds the configuration settings for the datastore client.
+type Config struct {
+	Logger    *zap.Logger
+	ProjectID string
+}
+
 // Logger is a package-level variable to access the zap logger throughout the datastore package.
 // It is intended to be used by other functions within the package for logging purposes.
 var Logger *zap.Logger
@@ -31,6 +37,14 @@ func SetLogger(logger *zap.Logger) {
 	Logger = logger
 }
 
+// NewConfig creates a new instance of Config with the given logger and project ID.
+func NewConfig(logger *zap.Logger, projectID string) *Config {
+	return &Config{
+		Logger:    logger,
+		ProjectID: projectID,
+	}
+}
+
 // CreateContext creates a new context that can be used for Datastore operations.
 // It returns a non-nil, empty context.
 func CreateContext() context.Context {
@@ -40,10 +54,10 @@ func CreateContext() context.Context {
 // CreateDatastoreClient creates a new client connected to Google Cloud Datastore.
 // It requires a context and a projectID to initialize the connection.
 // Returns a new Datastore client or an error if the connection could not be established.
-func CreateDatastoreClient(ctx context.Context, projectID string) (*Client, error) {
-	cloudClient, err := cloudDatastore.NewClient(ctx, projectID)
+func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error) {
+	cloudClient, err := cloudDatastore.NewClient(ctx, config.ProjectID)
 	if err != nil {
-		Logger.Error("Failed to create client", zap.Error(err))
+		config.Logger.Error("Failed to create client", zap.Error(err))
 		return nil, err
 	}
 	return &Client{cloudClient}, nil

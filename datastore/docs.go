@@ -11,8 +11,10 @@
 // Usage example:
 //
 //	func main() {
+//	    logger, _ := zap.NewDevelopment()
 //	    ctx := datastore.CreateContext()
-//	    client, err := datastore.CreateDatastoreClient(ctx, "my-project-id")
+//	    config := datastore.NewConfig(logger, "my-project-id")
+//	    client, err := datastore.CreateDatastoreClient(ctx, config)
 //	    if err != nil {
 //	        log.Fatalf("Failed to create datastore client: %v", err)
 //	    }
@@ -33,6 +35,12 @@
 // The `Client` type wraps the Google Cloud Datastore client, providing a layer of
 // abstraction that allows for mocking and testing without relying on an actual
 // datastore instance.
+//
+// The `NewConfig` function creates a new `Config` instance, which holds the
+// configuration settings for the datastore client, including the logger and project ID.
+//
+// The `CreateDatastoreClient` function now requires a `Config` object instead of a
+// project ID string, reflecting a more structured approach to configuration.
 //
 // The `SetLogger` function allows for the injection of a zap logger instance, which
 // is used throughout the package to log operations and errors. This ensures that
