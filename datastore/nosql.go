@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	cloudDatastore "cloud.google.com/go/datastore"
+	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
 	"go.uber.org/zap"
 )
 
@@ -52,12 +53,19 @@ func CreateContext() context.Context {
 }
 
 // CreateDatastoreClient creates a new client connected to Google Cloud Datastore.
-// It requires a context and a projectID to initialize the connection.
-// Returns a new Datastore client or an error if the connection could not be established.
+// It requires a context and a Config struct to initialize the connection.
+// It returns a new Datastore client wrapped in a custom Client type or an error if the connection could not be established.
 func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error) {
 	cloudClient, err := cloudDatastore.NewClient(ctx, config.ProjectID)
 	if err != nil {
-		config.Logger.Error("Failed to create client", zap.Error(err))
+		// Create structured log fields using logmonitor
+		logFields := logmonitor.CreateLogFields("CreateDatastoreClient",
+			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+			logmonitor.WithError(err),                           // Include the error here, but it will be nil if there's no error
+		)
+		// Log the error with structured fields
+		// Note: This logger is specifically configured for CreateDatastoreClient and is synchronized with Google Cloud Datastore's and any Google Cloud Service (e.g, Google Cloud Auth) error handling in the binary world.
+		config.Logger.Error("Failed to create client", logFields...)
 		return nil, err
 	}
 	return &Client{cloudClient}, nil
