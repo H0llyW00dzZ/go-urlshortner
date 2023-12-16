@@ -200,8 +200,13 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Perform the update operation.
-		if err := updateURL(c, dsClient, id, req); err != nil {
-			handleError(c, err.Error(), http.StatusInternalServerError, err)
+		err = updateURL(c, dsClient, id, req)
+		if err != nil {
+			if strings.Contains(err.Error(), "URL mismatch") {
+				handleError(c, err.Error(), http.StatusBadRequest, err)
+			} else {
+				handleError(c, err.Error(), http.StatusInternalServerError, err)
+			}
 			return
 		}
 
@@ -236,15 +241,16 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 	// Retrieve the current URL to ensure it matches the provided old URL.
 	currentURL, err := datastore.GetURL(c, dsClient, id)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve URL")
+		return fmt.Errorf("failed to retrieve URL: %w", err)
 	}
 	if currentURL.Original != req.OldURL {
-		return fmt.Errorf("URL mismatch")
+		// Instead of panicking, return an error that indicates a URL mismatch.
+		return fmt.Errorf("URL mismatch: expected %s, got %s", currentURL.Original, req.OldURL)
 	}
 
 	// Update the URL in the datastore with the new URL.
 	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-		return fmt.Errorf("failed to update URL")
+		return fmt.Errorf("failed to update URL: %w", err)
 	}
 
 	return nil
@@ -324,17 +330,17 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 	// Bind the JSON payload to the DeleteURLPayload struct.
 	var req DeleteURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		return logmonitor.NewBadRequestError("Invalid request payload", err)
+		return logmonitor.NewBadRequestError("🚨  ⚠️  Invalid request payload", err)
 	}
 
 	// Check if the IDs match
 	if idFromPath != req.ID {
-		return logmonitor.NewBadRequestError("Mismatch between path ID and payload ID", fmt.Errorf("path ID and payload ID do not match"))
+		return logmonitor.NewBadRequestError("🚨  ⚠️  Mismatch between path ID and payload ID", fmt.Errorf("path ID and payload ID do not match"))
 	}
 
 	// Validate the URL format.
 	if !isValidURL(req.URL) {
-		return logmonitor.NewBadRequestError("Invalid URL format", fmt.Errorf("invalid URL format"))
+		return logmonitor.NewBadRequestError("🚨  ⚠️  Invalid URL format", fmt.Errorf("invalid URL format"))
 	}
 
 	// Perform the delete operation.
@@ -420,14 +426,24 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 
 // handleError logs the error and sends a JSON response with the error message and status code.
 func handleError(c *gin.Context, message string, statusCode int, err error) {
-	// Use different log levels based on the status code
+	var emoji string
+
+	// Use different emojis based on the status code
 	switch {
 	case statusCode >= 500: // 5xx errors are still logged as errors
-		logmonitor.Logger.Error(message, zap.Error(err))
+		emoji = "🆘  ⚠️  "
+		logmonitor.Logger.Error(emoji+" "+message, zap.Error(err))
 	case statusCode >= 400: // 4xx errors are logged as warnings
-		logmonitor.Logger.Info(message, zap.Error(err))
+		if strings.Contains(message, "URL mismatch") {
+			emoji = "🔄  ❌  "
+		} else {
+			emoji = "🚨  ⚠️  "
+		}
+		logmonitor.Logger.Info(emoji+" "+message, zap.Error(err))
 	default: // All other status codes are logged as info
-		logmonitor.Logger.Info(message, zap.Error(err))
+		emoji = "✅  "
+		logmonitor.Logger.Info(emoji+" "+message, zap.Error(err))
 	}
+
 	c.AbortWithStatusJSON(statusCode, gin.H{"error": message})
 }

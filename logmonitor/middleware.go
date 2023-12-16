@@ -139,7 +139,7 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 		duration := time.Since(start)
 
 		// Log details of the request with zap.
-		logger.Info("Request Details",
+		logger.Info("☸️  🗳️  Request Details",
 			zap.String("machine_start_time", startTimeFormatted), // The local time when the request is received
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
