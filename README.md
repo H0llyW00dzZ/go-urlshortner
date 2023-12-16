@@ -16,21 +16,21 @@ This project aims to provide a straightforward and scalable approach to creating
 
 ## Features
 
-- **Shorten URLs**: The service allows users to convert long URLs into short, manageable identifiers that redirect to the original URLs. This makes the links easier to share on platforms with character limits or for readability purposes.
+- **🔗 Shorten URLs**: The service allows users to convert long URLs into short, manageable identifiers that redirect to the original URLs. This makes the links easier to share on platforms with character limits or for readability purposes.
 
-- **Redirection**: When a client accesses a short link, the service performs an HTTP or HTTPS redirect to the original, long URL associated with the short identifier.
+- **↪️ Redirection**: When a client accesses a short link, the service performs an HTTP or HTTPS redirect to the original, long URL associated with the short identifier.
 
-- **Simple Integration**: The service exposes RESTful API endpoints for creating, retrieving, updating, and deleting shortened URLs, which can be easily used by external applications or services.
+- **🔌 Simple Integration**: The service exposes RESTful API endpoints for creating, retrieving, updating, and deleting shortened URLs, which can be easily used by external applications or services.
 
-- **Dependency Injection (Gopher Hacker)**: The application's architecture includes dependency injection for core components like the logger and the Datastore client. This design pattern enhances testability and maintainability by decoupling the components and their dependencies.
+- **🏴‍☠️ Dependency Injection (Greetz Thx to: Gopher Unit Hacker)**: The application's architecture includes dependency injection for core components like the logger and the Datastore client. This design pattern enhances testability and maintainability by decoupling the components and their dependencies.
 
-- **Scalability**: Designed to be deployed as a containerized service, the application is built to handle high loads and can be scaled horizontally in a cloud environment.
+- **⚖️ Scalability**: Designed to be deployed as a containerized service, the application is built to handle high loads and can be scaled horizontally in a cloud environment.
 
-- **Security**: Access to certain API endpoints can be restricted to internal services using middleware that checks for a specific secret value, thereby enhancing the security of the application.
+- **🛡️ Security**: Access to certain API endpoints can be restricted to internal services using middleware that checks for a specific secret value, thereby enhancing the security of the application.
 
-- **Logging and Monitoring**: Structured logging is implemented using the `zap` library, which facilitates real-time monitoring and debugging of the application.
+- **🔎 Logging and Monitoring**: Structured logging is implemented using the `zap` library, which facilitates real-time monitoring and debugging of the application.
 
-- **Graceful Shutdown**: The service can handle shutdown signals and terminate gracefully, ensuring that ongoing operations are completed and resources are released properly.
+- **🪫 Graceful Shutdown**: The service can handle shutdown signals and terminate gracefully, ensuring that ongoing operations are completed and resources are released properly.
 
 ## Environment Configuration
 
