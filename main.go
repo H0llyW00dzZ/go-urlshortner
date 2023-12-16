@@ -166,7 +166,7 @@ func getServerPort() string {
 
 // runServer starts the server and logs any errors encountered during startup.
 func runServer(server *http.Server, logger *zap.Logger) {
-	logger.Info("Server is starting and Listening on address", zap.String("address", server.Addr))
+	logger.Info("🚀  Server is starting and Listening on address", zap.String("address", server.Addr))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logFields := logmonitor.CreateLogFields("runServer",
 			logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
@@ -174,7 +174,7 @@ func runServer(server *http.Server, logger *zap.Logger) {
 			logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
 			logmonitor.WithError(err),                                       // Include the error here, but it will be nil if there's no error
 		)
-		logger.Error("Server failed to start", logFields...)
+		logger.Error("🆘  ⚠️  Server failed to start", logFields...)
 		os.Exit(1)
 	}
 }
@@ -186,14 +186,20 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 	// Testing human readable logging
 	// Gopher will tell info to that devops always monitor the logs
 	s := <-quit
-	logger.Info("Received shutdown signal", zap.String("signal", s.String()))
+	logFields := logmonitor.CreateLogFields("waitForShutdownSignal",
+		logmonitor.WithComponent(logmonitor.ComponentMachineOperation), // Use the constant ComponentMachineOperation for the component
+		logmonitor.WithSignal(s), // Use the WithSignal function from logmonitor
+	)
+	// Log the reception of the shutdown signal.
+	logger.Info("📡  Received signal", logFields...)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	logger.Info("Shutting down server...")
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Fatal("Server forced to shutdown:", zap.Error(err))
+		// Log the error using the fields and include the error message.
+		logger.Fatal("🆘  ⚠️  Server forced to shutdown:", logFields...)
 	}
 }
 
@@ -201,7 +207,7 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
 	logger.Info("Closing datastore client...")
 	if err := datastore.CloseClient(datastoreClient); err != nil {
-		logger.Error("Failed to close datastore client", zap.Error(err))
+		logger.Error("🆘  ⚠️  Failed to close datastore client", zap.Error(err))
 	}
 
 	logger.Info("Server exiting")
@@ -215,7 +221,7 @@ func handleStartupFailure(err error, logger *zap.Logger) {
 		logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
 		logmonitor.WithError(err),                                       // Include the error here, but it will be nil if there's no error
 	)
-	logger.Error("Startup failure", logFields...)
+	logger.Error("🆘  ⚠️  Startup failure", logFields...)
 
 	// Optionally, print the error using the bannercli package.
 	bannercli.PrintTypingBanner(err.Error(), 100*time.Millisecond)
