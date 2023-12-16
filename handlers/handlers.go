@@ -121,7 +121,11 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Assuming datastore.GetURL is a function that correctly handles datastore operations.
 		url, err := datastore.GetURL(c, dsClient, id)
 		// Declare logFields here so it's accessible throughout the function scope
-		logFields := logmonitor.CreateLogFields("getURL", logmonitor.WithID(id), logmonitor.WithError(err))
+		logFields := logmonitor.CreateLogFields("getURL",
+			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+			logmonitor.WithID(id),
+			logmonitor.WithError(err), // Include the error here, but it will be nil if there's no error
+		)
 
 		if err != nil {
 			if err == datastore.ErrNotFound {
@@ -136,16 +140,13 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 		// Check if URL is nil after the GetURL call
 		if url == nil {
-			logmonitor.Logger.Error("URL is nil after GetURL call",
-				zap.String("operation", "getURL"),
-				zap.String("id", id),
-			)
+			// Use the logmonitor's logging function for consistency
+			logmonitor.Logger.Error("URL is nil after GetURL call", logFields...)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
-		// Remove the WithError since there's no error in this case
-		logFields = logmonitor.CreateLogFields("getURL", logmonitor.WithID(id))
+		// If there's no error and you're logging a successful retrieval, use the same logFields
 		logmonitor.Logger.Info("URL retrieved successfully", logFields...)
 		c.Redirect(http.StatusFound, url.Original)
 	}
@@ -177,7 +178,11 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		logFields := logmonitor.CreateLogFields("postURL", logmonitor.WithID(id))
+		logFields := logmonitor.CreateLogFields("postURL",
+			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+			logmonitor.WithID(id),
+		)
+
 		logmonitor.Logger.Info("URL shortened and saved", logFields...)
 
 		// Construct the full shortened URL and return it in the response.
@@ -206,7 +211,11 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Respond with the updated URL information.
-		logFields := logmonitor.CreateLogFields("editURL", logmonitor.WithID(id))
+		logFields := logmonitor.CreateLogFields("editURL",
+			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+			logmonitor.WithID(id),
+		)
+
 		logmonitor.Logger.Info("URL updated successfully", logFields...)
 		respondWithUpdatedURL(c, id)
 	}
@@ -280,7 +289,11 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			handleDeletionError(c, err)
 		} else {
 			// Use the centralized logging function from logmonitor package
-			logFields := logmonitor.CreateLogFields("deleteURL", logmonitor.WithID(c.Param("id")))
+			logFields := logmonitor.CreateLogFields("deleteURL",
+				logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+				logmonitor.WithID(c.Param("id")),
+			)
+
 			logmonitor.Logger.Info("URL deleted successfully", logFields...)
 			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
 		}
@@ -291,7 +304,12 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 func handleDeletionError(c *gin.Context, err error) {
 	id := c.Param("id")
 	// Use the centralized logging function from logmonitor package
-	logFields := logmonitor.CreateLogFields("deleteURL", logmonitor.WithID(id), logmonitor.WithError(err))
+	logFields := logmonitor.CreateLogFields("deleteURL",
+		logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+		logmonitor.WithID(id),
+		logmonitor.WithError(err),
+	)
+
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
 		logmonitor.Logger.Info(badRequestErr.UserMessage, logFields...)
 		c.JSON(http.StatusBadRequest, gin.H{"error": badRequestErr.UserMessage})
