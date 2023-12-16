@@ -124,10 +124,10 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 		if err != nil {
 			if err == datastore.ErrNotFound {
-				logmonitor.Logger.Info("🔙 URL not found", logFields...)
+				logmonitor.Logger.Info("🔙  URL not found", logFields...)
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 			} else {
-				logmonitor.Logger.Error("🆘 ⚠️ Failed to get URL", logFields...)
+				logmonitor.Logger.Error("🆘  ⚠️  Failed to get URL", logFields...)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			}
 			return
@@ -136,13 +136,13 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Check if URL is nil after the GetURL call
 		if url == nil {
 			// Use the logmonitor's logging function for consistency
-			logmonitor.Logger.Error("🆘 ⚠️ URL is nil after GetURL call", logFields...)
+			logmonitor.Logger.Error("🆘  ⚠️  URL is nil after GetURL call", logFields...)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
 		// If there's no error and you're logging a successful retrieval, use the same logFields
-		logmonitor.Logger.Info("🔗 ↪️ ✅ URL retrieved successfully", logFields...)
+		logmonitor.Logger.Info("🔗  ↪️  ✅  URL retrieved successfully", logFields...)
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
@@ -178,7 +178,7 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			logmonitor.WithID(id),
 		)
 
-		logmonitor.Logger.Info("🔗 ✅ URL shortened and saved", logFields...)
+		logmonitor.Logger.Info("🔗  ✅  URL shortened and saved", logFields...)
 
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
@@ -211,7 +211,7 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			logmonitor.WithID(id),
 		)
 
-		logmonitor.Logger.Info("🔗 🆕 ✅ URL updated successfully", logFields...)
+		logmonitor.Logger.Info("🔗  🆕  ✅  URL updated successfully", logFields...)
 		respondWithUpdatedURL(c, id)
 	}
 }
@@ -264,13 +264,13 @@ func respondWithUpdatedURL(c *gin.Context, id string) {
 func extractURL(c *gin.Context) (string, error) {
 	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		Logger.Info("🚨 ⚠️ Invalid request - JSON binding error", zap.Error(err))
+		Logger.Info("🚨  ⚠️  Invalid request - JSON binding error", zap.Error(err))
 		return "", err
 	}
 
 	// Check if the URL is in a valid format.
 	if req.URL == "" || !isValidURL(req.URL) {
-		Logger.Info("🚨 ⚠️ Invalid URL format", zap.String("url", req.URL))
+		Logger.Info("🚨  ⚠️  Invalid URL format", zap.String("url", req.URL))
 		return "", fmt.Errorf("invalid URL format")
 	}
 
@@ -289,7 +289,7 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 				logmonitor.WithID(c.Param("id")),
 			)
 
-			logmonitor.Logger.Info("🔗 🚮 ✅ URL deleted successfully", logFields...)
+			logmonitor.Logger.Info("🔗  🗑️  ✅  URL deleted successfully", logFields...)
 			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
 		}
 	}
@@ -309,10 +309,10 @@ func handleDeletionError(c *gin.Context, err error) {
 		logmonitor.Logger.Info(badRequestErr.UserMessage, logFields...)
 		c.JSON(http.StatusBadRequest, gin.H{"error": badRequestErr.UserMessage})
 	} else if err == datastore.ErrNotFound {
-		logmonitor.Logger.Info("🚨 ⚠️ URL not found for deletion", logFields...)
+		logmonitor.Logger.Info("🚨  ⚠️  URL not found for deletion", logFields...)
 		c.JSON(http.StatusNotFound, gin.H{"error": "ID and URL not found"})
 	} else {
-		logmonitor.Logger.Error("🆘 ⚠️ Failed to delete URL", logFields...)
+		logmonitor.Logger.Error("🆘  ⚠️  Failed to delete URL", logFields...)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 	}
 }
