@@ -241,16 +241,16 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 	// Retrieve the current URL to ensure it matches the provided old URL.
 	currentURL, err := datastore.GetURL(c, dsClient, id)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve URL: %w", err)
+		return fmt.Errorf("failed to retrieve URL")
 	}
 	if currentURL.Original != req.OldURL {
 		// Instead of panicking, return an error that indicates a URL mismatch.
-		return fmt.Errorf("URL mismatch: expected %s, got %s", currentURL.Original, req.OldURL)
+		return fmt.Errorf("URL mismatch")
 	}
 
 	// Update the URL in the datastore with the new URL.
 	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-		return fmt.Errorf("failed to update URL: %w", err)
+		return fmt.Errorf("failed to update URL")
 	}
 
 	return nil
