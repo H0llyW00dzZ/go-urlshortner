@@ -65,7 +65,7 @@ func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error)
 		)
 		// Log the error with structured fields
 		// Note: This logger is specifically configured for CreateDatastoreClient and is synchronized with Google Cloud Datastore's and any Google Cloud Service (e.g, Google Cloud Auth) error handling in the binary world.
-		config.Logger.Error("Failed to create client", logFields...)
+		config.Logger.Error("🆘  ⚠️  Failed to create client", logFields...)
 		return nil, err
 	}
 	return &Client{cloudClient}, nil
@@ -80,7 +80,7 @@ func SaveURL(ctx context.Context, client *Client, url *URL) error {
 	_, err := client.Put(ctx, key, url)
 	if err != nil {
 		// Use zap logger to log the error for consistent logging.
-		Logger.Error("Failed to save URL", zap.Error(err))
+		Logger.Error("🆘  ⚠️  Failed to save URL", zap.Error(err))
 		return err
 	}
 	return nil
@@ -125,7 +125,7 @@ func UpdateURL(ctx context.Context, client *Client, id string, newURL string) er
 	})
 
 	if err != nil {
-		Logger.Error("Failed to update URL", zap.String("id", id), zap.Error(err))
+		Logger.Error("🆘  ⚠️  Failed to update URL", zap.String("id", id), zap.Error(err))
 		return err
 	}
 
@@ -143,7 +143,7 @@ func DeleteURL(ctx context.Context, client *Client, id string) error {
 			return ErrNotFound
 		}
 		// Log and handle other possible errors.
-		Logger.Error("Failed to delete URL", zap.String("id", id), zap.Error(err))
+		Logger.Error("🆘  ⚠️  Failed to delete URL", zap.String("id", id), zap.Error(err))
 		return err
 	}
 	return nil
@@ -158,7 +158,7 @@ func CloseClient(client *Client) error {
 	}
 	err := client.Close()
 	if err != nil {
-		Logger.Error("Failed to close datastore client", zap.Error(err))
+		Logger.Error("🆘  ⚠️  Failed to close datastore client", zap.Error(err))
 		return err
 	}
 	return nil
