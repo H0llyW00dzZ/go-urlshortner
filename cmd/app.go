@@ -180,6 +180,9 @@ func runServer(server *http.Server, logger *zap.Logger) {
 }
 
 // waitForShutdownSignal blocks until a SIGINT or SIGTERM signal is received, then shuts down the server.
+// Note: This function can be ignored if you're using a managed service, such as Google Cloud Run. In such
+// environments, Google Cloud Run (on top of Knative) sends a SIGTERM signal and manages the shutdown process for you. Therefore, the
+// managed service continues to handle all operational aspects, indicating that the service is running within Google Cloud Run.
 func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
