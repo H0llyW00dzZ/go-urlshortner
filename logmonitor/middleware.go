@@ -25,6 +25,8 @@ const (
 	RedirectEmoji        = "🔀"
 	SosEmoji             = "🆘"
 	DeleteEmoji          = "🗑️"
+	UpdateEmoji          = "🔄"
+	NewEmoji             = "🆕"
 )
 
 // Component constants for structured logging.
