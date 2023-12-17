@@ -65,7 +65,7 @@ func init() {
 	// Note: This is important and secure because it resides deep within the binary internals and should not be left unset in production.
 	internalSecretValue = os.Getenv("INTERNAL_SECRET_VALUE")
 	if internalSecretValue == "" {
-		panic("INTERNAL_SECRET_VALUE is not set")
+		panic(logmonitor.InternelSecretEnvContextLog)
 	}
 }
 
@@ -76,9 +76,11 @@ func init() {
 func InternalOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Check the request header against the expected secret value.
-		if c.GetHeader("X-Internal-Secret") != internalSecretValue {
+		if c.GetHeader(logmonitor.HeaderXinternalSecret) != internalSecretValue {
 			// If the header does not match the expected secret, abort the request.
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				logmonitor.HeaderResponseError: logmonitor.HeaderResponseForbidden,
+			})
 			return
 		}
 
@@ -111,7 +113,7 @@ func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) 
 // or an error occurs, the handler responds with the appropriate HTTP status code and error message.
 func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		id := c.Param(logmonitor.HeaderID)
 
 		// Assuming datastore.GetURL is a function that correctly handles datastore operations.
 		url, err := datastore.GetURL(c, dsClient, id)
@@ -124,11 +126,15 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 		if err != nil {
 			if err == datastore.ErrNotFound {
-				logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  URL not found", logFields...)
-				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
+				logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.URLnotfoundContextLog, logFields...)
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					logmonitor.HeaderResponseError: logmonitor.URLnotfoundContextLog,
+				})
 			} else {
-				logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Failed to get URL", logFields...)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+				logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToGetURLContextLog, logFields...)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
+				})
 			}
 			return
 		}
@@ -136,13 +142,15 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Check if URL is nil after the GetURL call
 		if url == nil {
 			// Use the logmonitor's logging function for consistency
-			logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  URL is nil after GetURL call", logFields...)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.URLisNilContextLog, logFields...)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
+			})
 			return
 		}
 
 		// If there's no error and you're logging a successful retrieval, use the same logFields
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.RedirectEmoji+"  "+logmonitor.SuccessEmoji+"  URL retrieved successfully", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.RedirectEmoji+"  "+logmonitor.SuccessEmoji+"  "+logmonitor.URLRetriveContextLog, logFields...)
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
@@ -156,20 +164,20 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Extract and validate the original URL from the request body.
 		url, err := extractURL(c)
 		if err != nil {
-			handleError(c, "Invalid request payload", http.StatusBadRequest, err)
+			handleError(c, logmonitor.HeaderResponseInvalidRequestPayload, http.StatusBadRequest, err)
 			return
 		}
 
 		// Generate a short identifier for the URL.
 		id, err := generateShortID()
 		if err != nil {
-			handleError(c, "Failed to generate ID", http.StatusInternalServerError, err)
+			handleError(c, logmonitor.HeaderResponseFailedtoGenerateID, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Save the URL with the generated identifier into the datastore.
 		if err := saveURL(c, dsClient, id, url); err != nil {
-			handleError(c, "Failed to save URL", http.StatusInternalServerError, err)
+			handleError(c, logmonitor.HeaderResponseFailedtoSaveURL, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -178,11 +186,13 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			logmonitor.WithID(id),
 		)
 
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  URL shortened and saved", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  "+logmonitor.URLShorteneredContextLog, logFields...)
 
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
-		c.JSON(http.StatusOK, gin.H{"id": id, "shortened_url": fullShortenedURL})
+		c.JSON(http.StatusOK, gin.H{
+			logmonitor.HeaderID: id, logmonitor.HeaderResponseshortened_url: fullShortenedURL,
+		})
 	}
 }
 
@@ -190,12 +200,12 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get the ID from the URL path parameter.
-		id := c.Param("id")
+		id := c.Param(logmonitor.HeaderID)
 
 		// Bind the JSON payload to the UpdateURLPayload struct.
 		req, err := bindUpdatePayload(c)
 		if err != nil {
-			handleError(c, "Invalid request", http.StatusBadRequest, err)
+			handleError(c, logmonitor.HeaderResponseInvalidRequest, http.StatusBadRequest, err)
 			return
 		}
 
@@ -208,18 +218,18 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Perform the update operation.
 		err = updateURL(c, dsClient, id, req)
 		if err != nil {
-			if strings.Contains(err.Error(), "URL mismatch") {
+			if strings.Contains(err.Error(), logmonitor.URLmismatchContextLog) {
 				handleError(c, err.Error(), http.StatusBadRequest, err)
-				logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.ErrorEmoji+"  URL mismatch", logFields...)
+				logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
 			} else {
 				handleError(c, err.Error(), http.StatusInternalServerError, err)
-				logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Failed to update URL", logFields...)
+				logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
 			}
 			return
 		}
 
 		// Respond with the updated URL information.
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.ErrorEmoji+"  URL updated successfully", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLupdateContextLog, logFields...)
 		respondWithUpdatedURL(c, id)
 	}
 }
@@ -232,7 +242,7 @@ func bindUpdatePayload(c *gin.Context) (UpdateURLPayload, error) {
 	}
 
 	if req.NewURL == "" || !isValidURL(req.NewURL) {
-		return req, fmt.Errorf("invalid new URL format")
+		return req, fmt.Errorf(logmonitor.InvalidNewURLFormatContextLog)
 	}
 
 	return req, nil
@@ -244,16 +254,16 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 	// Retrieve the current URL to ensure it matches the provided old URL.
 	currentURL, err := datastore.GetURL(c, dsClient, id)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve URL")
+		return fmt.Errorf(logmonitor.FailedToRetriveURLContextLog)
 	}
 	if currentURL.Original != req.OldURL {
 		// Instead of panicking, return an error that indicates a URL mismatch.
-		return fmt.Errorf("URL mismatch")
+		return fmt.Errorf(logmonitor.URLmismatchContextLog)
 	}
 
 	// Update the URL in the datastore with the new URL.
 	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-		return fmt.Errorf("failed to update URL")
+		return fmt.Errorf(logmonitor.FailedToUpdateURLContextLog)
 	}
 
 	return nil
@@ -263,9 +273,9 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 func respondWithUpdatedURL(c *gin.Context, id string) {
 	fullShortenedURL := constructFullShortenedURL(c, id)
 	c.JSON(http.StatusOK, gin.H{
-		"id":            id,
-		"shortened_url": fullShortenedURL,
-		"status":        "URL updated successfully",
+		logmonitor.HeaderID:                    id,
+		logmonitor.HeaderResponseshortened_url: fullShortenedURL,
+		logmonitor.HeaderResponseStatus:        logmonitor.HeaderResponseURlUpdated,
 	})
 }
 
@@ -273,14 +283,14 @@ func respondWithUpdatedURL(c *gin.Context, id string) {
 func extractURL(c *gin.Context) (string, error) {
 	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Invalid request - JSON binding error", zap.Error(err))
+		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.HeaderResponseInvalidRequestJSONBinding, zap.Error(err))
 		return "", err
 	}
 
 	// Check if the URL is in a valid format.
 	if req.URL == "" || !isValidURL(req.URL) {
-		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Invalid URL format", zap.String("url", req.URL))
-		return "", fmt.Errorf("invalid URL format")
+		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.HeaderResponseInvalidURLFormat, zap.String("url", req.URL))
+		return "", fmt.Errorf(logmonitor.HeaderResponseInvalidURLFormat)
 	}
 
 	return req.URL, nil
@@ -292,20 +302,22 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Use the centralized logging function from logmonitor package
 		logFields := logmonitor.CreateLogFields("deleteURL",
 			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithID(c.Param("id")),
+			logmonitor.WithID(c.Param(logmonitor.HeaderID)),
 		)
 		if err := validateAndDeleteURL(c, dsClient); err != nil {
 			handleDeletionError(c, err)
 		} else {
-			logmonitor.Logger.Info(logmonitor.DeleteEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  URL deleted successfully", logFields...)
-			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
+			logmonitor.Logger.Info(logmonitor.DeleteEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  "+logmonitor.HeaderResponseURLDeleted, logFields...)
+			c.JSON(http.StatusOK, gin.H{
+				logmonitor.HeaderMessage: logmonitor.HeaderResponseURLDeleted,
+			})
 		}
 	}
 }
 
 // handleDeletionError handles errors that occur during the URL deletion process.
 func handleDeletionError(c *gin.Context, err error) {
-	id := c.Param("id")
+	id := c.Param(logmonitor.HeaderID)
 	// Use the centralized logging function from logmonitor package
 	logFields := logmonitor.CreateLogFields("deleteURL",
 		logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
@@ -314,35 +326,43 @@ func handleDeletionError(c *gin.Context, err error) {
 	)
 
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Failed to validate deletion URL", logFields...)
-		c.JSON(http.StatusBadRequest, gin.H{"error": badRequestErr.UserMessage})
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToValidateURLContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: badRequestErr.UserMessage,
+		})
 	} else if err == datastore.ErrNotFound {
-		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  URL not found for deletion", logFields...)
-		c.JSON(http.StatusNotFound, gin.H{"error": "ID and URL not found"})
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.NoURLIDContextLog, logFields...)
+		c.JSON(http.StatusNotFound, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.HeaderResponseIDandURLNotFound,
+		})
 	} else {
-		logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Failed to delete URL", logFields...)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToDeletedURLContextLog, logFields...)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
+		})
 	}
 }
 
 // validateAndDeleteURL validates the ID and URL and performs the deletion if they are correct.
 func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
-	idFromPath := c.Param("id") // Extract the ID from the URL path
+	idFromPath := c.Param(logmonitor.HeaderID) // Extract the ID from the URL path
 
 	// Bind the JSON payload to the DeleteURLPayload struct.
 	var req DeleteURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		return logmonitor.NewBadRequestError("Invalid request payload", err)
+		return logmonitor.NewBadRequestError(logmonitor.HeaderResponseInvalidRequestPayload, err)
 	}
 
 	// Check if the IDs match
 	if idFromPath != req.ID {
-		return logmonitor.NewBadRequestError("Mismatch between path ID and payload ID", fmt.Errorf("path ID and payload ID do not match"))
+		return logmonitor.NewBadRequestError(
+			logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog,
+			fmt.Errorf(logmonitor.PathIDandPayloadIDDoesnotMatchContextLog))
 	}
 
 	// Validate the URL format.
 	if !isValidURL(req.URL) {
-		return logmonitor.NewBadRequestError("Invalid URL format", fmt.Errorf("invalid URL format"))
+		return logmonitor.NewBadRequestError(logmonitor.HeaderResponseInvalidURLFormat, fmt.Errorf(logmonitor.HeaderResponseInvalidURLFormat))
 	}
 
 	// Perform the delete operation.
@@ -357,7 +377,7 @@ func deleteURL(c *gin.Context, dsClient *datastore.Client, id string, providedUR
 	}
 
 	if currentURL.Original != providedURL {
-		return fmt.Errorf("URL mismatch")
+		return fmt.Errorf(logmonitor.URLmismatchContextLog)
 	}
 
 	return performDelete(c, dsClient, id)
@@ -370,7 +390,7 @@ func getCurrentURL(c *gin.Context, dsClient *datastore.Client, id string) (*data
 		if err == datastore.ErrNotFound {
 			return nil, datastore.ErrNotFound
 		}
-		return nil, fmt.Errorf("failed to retrieve URL: %v", err)
+		return nil, fmt.Errorf(logmonitor.FailedToRetriveURLContextLog+": %v", err)
 	}
 	return currentURL, nil
 }
@@ -378,7 +398,7 @@ func getCurrentURL(c *gin.Context, dsClient *datastore.Client, id string) (*data
 // performDelete deletes the URL entity from the datastore.
 func performDelete(c *gin.Context, dsClient *datastore.Client, id string) error {
 	if err := datastore.DeleteURL(c, dsClient, id); err != nil {
-		return fmt.Errorf("failed to delete URL: %v", err)
+		return fmt.Errorf(logmonitor.FailedToDeletedURLContextLog+": %v", err)
 	}
 	return nil
 }
@@ -400,13 +420,13 @@ func saveURL(c *gin.Context, dsClient *datastore.Client, id string, originalURL 
 // constructFullShortenedURL constructs the full shortened URL from the request and the base path.
 func constructFullShortenedURL(c *gin.Context, id string) string {
 	// Check for the X-Forwarded-Proto header to determine the scheme.
-	scheme := c.GetHeader("X-Forwarded-Proto")
+	scheme := c.GetHeader(logmonitor.HeaderXProto)
 	if scheme == "" {
 		// Fallback to checking the TLS property of the request if the header is not set.
 		if c.Request.TLS != nil {
-			scheme = "https"
+			scheme = logmonitor.HeaderSchemeHTTPS
 		} else {
-			scheme = "http"
+			scheme = logmonitor.HeaderSchemeHTTP
 		}
 	}
 
@@ -437,5 +457,7 @@ func handleError(c *gin.Context, message string, statusCode int, err error) {
 		Logger.Error(emoji+"  "+message, zap.Error(err))
 	}
 
-	c.AbortWithStatusJSON(statusCode, gin.H{"error": message})
+	c.AbortWithStatusJSON(statusCode, gin.H{
+		logmonitor.HeaderResponseError: message,
+	})
 }

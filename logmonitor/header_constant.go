@@ -9,7 +9,7 @@ const (
 	HeaderResponseInvalidRequestJSONBinding = "Invalid request - JSON binding error"
 	HeaderResponseInvalidURLFormat          = "Invalid URL format"
 	HeaderResponseInvalidRequestPayload     = "Invalid request payload"
-	HeaderResponseINvalidRequest            = "Invalid request"
+	HeaderResponseInvalidRequest            = "Invalid request"
 	HeaderResponseURLDeleted                = "URL deleted successfully"
 	HeaderResponseIDandURLNotFound          = "ID and URL not found"
 	HeaderResponseForbidden                 = "Forbidden"
@@ -26,10 +26,11 @@ const (
 
 // Define header for different components.
 const (
-	HeaderID          = "id"
-	HeaderURL         = "url"
-	HeaderMessage     = "message"
-	HeaderSchemeHTTP  = "http"
-	HeaderSchemeHTTPS = "https"
-	HeaderXProto      = "X-Forwarded-Proto"
+	HeaderID              = "id"
+	HeaderURL             = "url"
+	HeaderMessage         = "message"
+	HeaderSchemeHTTP      = "http"
+	HeaderSchemeHTTPS     = "https"
+	HeaderXProto          = "X-Forwarded-Proto"
+	HeaderXinternalSecret = "X-Internal-Secret"
 )
