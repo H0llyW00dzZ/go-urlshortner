@@ -29,6 +29,7 @@ const (
 	FailedToCreateDatastoreClientContextLog     = "failed to create datastore client:"
 	FailedToIntializeLoggerContextLog           = "failed to initialize logger:"
 	DataStoreProjectIDEnvContextLog             = "DATASTORE_PROJECT_ID environment variable not set"
+	InternelSecretEnvContextLog                 = "INTERNAL_SECRET environment variable not set"
 	InvalidNewURLFormatContextLog               = "Invalid new URL format"
 	MisMatchBetweenPathIDandPayloadIDContextLog = "Mismatch between path ID and payload ID"
 	PathIDandPayloadIDDoesnotMatchContextLog    = "Path ID and payload ID does not match"

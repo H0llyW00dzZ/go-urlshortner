@@ -65,7 +65,7 @@ func init() {
 	// Note: This is important and secure because it resides deep within the binary internals and should not be left unset in production.
 	internalSecretValue = os.Getenv("INTERNAL_SECRET_VALUE")
 	if internalSecretValue == "" {
-		panic("INTERNAL_SECRET_VALUE is not set")
+		panic(logmonitor.InternelSecretEnvContextLog)
 	}
 }
 
@@ -131,7 +131,7 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 					logmonitor.HeaderResponseError: logmonitor.URLnotfoundContextLog,
 				})
 			} else {
-				logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Failed to get URL", logFields...)
+				logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToGetURLContextLog, logFields...)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
 				})
@@ -142,7 +142,7 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Check if URL is nil after the GetURL call
 		if url == nil {
 			// Use the logmonitor's logging function for consistency
-			logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  URL is nil after GetURL call", logFields...)
+			logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.URLisNilContextLog, logFields...)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
 			})
@@ -150,7 +150,7 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// If there's no error and you're logging a successful retrieval, use the same logFields
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.RedirectEmoji+"  "+logmonitor.SuccessEmoji+"  URL retrieved successfully", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.RedirectEmoji+"  "+logmonitor.SuccessEmoji+"  "+logmonitor.URLRetriveContextLog, logFields...)
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
