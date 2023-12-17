@@ -48,13 +48,13 @@ Please follow these steps for your contribution:
 
 To ensure the codebase remains clean, readable, and maintainable, please adhere to the following rules:
 
-- **Pass all tests**: Your code must pass all existing tests and any new tests you have written to cover your changes.
+- **Pass all tests (Not Really Important as long cyclomatic complexity are under 5)**: Your code must pass all existing tests and any new tests you have written to cover your changes.
 
-- **Keep a low cyclomatic complexity**: We aim for a cyclomatic complexity of `5` or less. Use tools like `gocyclo` to check the complexity of your code.
+- **Keep a low cyclomatic complexity (Most Important)**: We aim for a cyclomatic complexity of `5` or less. Use tools like `gocyclo` to check the complexity of your code.
 
-- **Follow Go best practices**: Refer to resources like "Effective Go" and the Go code review comments for guidance on writing idiomatic Go code.
+- **Follow Go best practices (Most Important)**: Refer to resources like "Effective Go" and the Go code review comments for guidance on writing idiomatic Go code.
 
-- **Avoid code smells**: Refactor any code that might be considered a "code smell" - a surface indication that usually corresponds to a deeper problem in the system.
+- **Avoid code smells (Most Important)**: Refactor any code that might be considered a "code smell" - a surface indication that usually corresponds to a deeper problem in the system.
 
 
 ## Pull Request Process
