@@ -166,15 +166,29 @@ func getServerPort() string {
 
 // runServer starts the server and logs any errors encountered during startup.
 func runServer(server *http.Server, logger *zap.Logger) {
-	logger.Info("🚀  Server is starting and Listening on address", zap.String("address", server.Addr))
+	// Create log fields using the WithComponent function to convert string constants to zapcore.Field
+	logFields := logmonitor.CreateLogFields("runServer",
+		logmonitor.WithComponent(logmonitor.ComponentGopher),            // Use the constant ComponentGopher for the component
+		logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
+		logmonitor.WithComponent(logmonitor.ComponentProjectIDENV),      // Use the constant ComponentProjectIDENV for the component
+		logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
+	)
+
+	// Add the server address and port to the log fields
+	logFields = append(logFields,
+		zap.String("address", server.Addr),
+		zap.String("port", getServerPort()),
+	)
+	// Testing human readable logging
+	// Gopher will tell info to that devops always monitor the logs
+	// Log the server starting message with the common fields
+	logger.Info("🚀  Server is starting and Listening on address "+server.Addr, logFields...)
+
+	// Attempt to start the server
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		logFields := logmonitor.CreateLogFields("runServer",
-			logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
-			logmonitor.WithComponent(logmonitor.ComponentProjectIDENV),      // Use the constant ComponentProjectIDENV for the component
-			logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
-			logmonitor.WithError(err),                                       // Include the error here, but it will be nil if there's no error
-		)
-		logger.Error("🆘  ⚠️  Server failed to start", logFields...)
+		// Add the error to the log fields for error logging
+		errorLogFields := append(logFields, logmonitor.WithError(err)())
+		logger.Error("🆘  ⚠️  Server failed to start", errorLogFields...)
 		os.Exit(1)
 	}
 }
@@ -190,8 +204,9 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 	// Gopher will tell info to that devops always monitor the logs
 	s := <-quit
 	logFields := logmonitor.CreateLogFields("waitForShutdownSignal",
+		logmonitor.WithComponent(logmonitor.ComponentGopher),           // Use the constant ComponentGopher for the component
 		logmonitor.WithComponent(logmonitor.ComponentMachineOperation), // Use the constant ComponentMachineOperation for the component
-		logmonitor.WithSignal(s), // Use the WithSignal function from logmonitor
+		logmonitor.WithSignal(s),                                       // Use the WithSignal function from logmonitor
 	)
 	// Log the reception of the shutdown signal.
 	logger.Info("📡  Received signal", logFields...)
@@ -219,6 +234,7 @@ func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
 func handleStartupFailure(err error, logger *zap.Logger) {
 	// Log the error using the provided zap.Logger
 	logFields := logmonitor.CreateLogFields("handleStartupFailure",
+		logmonitor.WithComponent(logmonitor.ComponentGopher),            // Use the constant ComponentGopher for the component
 		logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
 		logmonitor.WithComponent(logmonitor.ComponentProjectIDENV),      // Use the constant ComponentProjectIDENV for the component
 		logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
