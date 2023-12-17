@@ -76,7 +76,7 @@ func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error)
 // If the Kind 'urlz' does not exist, Datastore will create it automatically.
 // Returns an error if the URL entity could not be saved.
 func SaveURL(ctx context.Context, client *Client, url *URL) error {
-	key := cloudDatastore.NameKey("urlz", url.ID, nil)
+	key := cloudDatastore.NameKey(DataStoreNameKey, url.ID, nil)
 	_, err := client.Put(ctx, key, url)
 	if err != nil {
 		// Use zap logger to log the error for consistent logging.
@@ -90,7 +90,7 @@ func SaveURL(ctx context.Context, client *Client, url *URL) error {
 // It requires a context, a Datastore client, and the ID of the URL entity.
 // Returns the URL entity or an error if the entity could not be retrieved.
 func GetURL(ctx context.Context, dsClient *Client, id string) (*URL, error) {
-	key := cloudDatastore.NameKey("urlz", id, nil)
+	key := cloudDatastore.NameKey(DataStoreNameKey, id, nil)
 	url := new(URL)
 	err := dsClient.Get(ctx, key, url)
 	if err != nil {
@@ -107,7 +107,7 @@ func GetURL(ctx context.Context, dsClient *Client, id string) (*URL, error) {
 // It requires a context, a Datastore client, the ID of the URL entity, and the new URL to update.
 // Returns an error if the URL entity could not be updated.
 func UpdateURL(ctx context.Context, client *Client, id string, newURL string) error {
-	key := cloudDatastore.NameKey("urlz", id, nil)
+	key := cloudDatastore.NameKey(DataStoreNameKey, id, nil)
 	// Transactionally retrieve the existing URL and update it.
 	_, err := client.RunInTransaction(ctx, func(tx *cloudDatastore.Transaction) error {
 		url := new(URL)
@@ -136,7 +136,7 @@ func UpdateURL(ctx context.Context, client *Client, id string, newURL string) er
 // It requires a context, a Datastore client, and the ID of the URL entity.
 // Returns an error if the entity could not be deleted.
 func DeleteURL(ctx context.Context, client *Client, id string) error {
-	key := cloudDatastore.NameKey("urlz", id, nil)
+	key := cloudDatastore.NameKey(DataStoreNameKey, id, nil)
 	err := client.Delete(ctx, key)
 	if err != nil {
 		if err == cloudDatastore.ErrNoSuchEntity {
