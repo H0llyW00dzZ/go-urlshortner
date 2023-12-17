@@ -21,6 +21,7 @@ const (
 	urlshortnerEmoji     = "🔗"
 	SignalSatelliteEmoji = "📡"
 	ModernGopherEmoji    = "🤖"
+	GetBackEmoji         = "🔙"
 )
 
 // Component constants for structured logging.
