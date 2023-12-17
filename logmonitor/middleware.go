@@ -22,6 +22,7 @@ const (
 	SignalSatelliteEmoji = "📡"
 	ModernGopherEmoji    = "🤖"
 	GetBackEmoji         = "🔙"
+	RedirectEmoji        = "🔀"
 )
 
 // Component constants for structured logging.
