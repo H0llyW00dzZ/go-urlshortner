@@ -13,7 +13,7 @@ import (
 const (
 	ErrorEmoji           = "❌"
 	SuccessEmoji         = "✅"
-	InfoEmoji            = "ℹ️"
+	InfoEmoji            = "🛈"
 	WarningEmoji         = "⚠️"
 	K8sEmoji             = "☸️"
 	DeployEmoji          = "🚀"
