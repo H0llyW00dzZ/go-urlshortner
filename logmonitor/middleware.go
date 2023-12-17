@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,25 +36,6 @@ type BadRequestError struct {
 
 // LogFieldOption defines a function signature for options that can be passed to createLogFields.
 type LogFieldOption func() zap.Field
-
-func init() {
-	// Initialize the zap logger with a development configuration.
-	// This config is console-friendly and outputs logs in plaintext.
-	config := zap.NewDevelopmentConfig()
-
-	// Customize the logger configuration here if needed.
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	// Customize the level encoder to lowercase (info, warn, etc.)
-	config.EncoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
-
-	// Build the logger from the config and check for errors.
-	var err error
-	Logger, err = config.Build()
-	if err != nil {
-		panic(err)
-	}
-}
 
 // CreateLogFields generates common log fields for use in various parts of the application.
 func CreateLogFields(operation string, options ...LogFieldOption) []zap.Field {
