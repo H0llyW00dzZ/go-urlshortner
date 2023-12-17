@@ -18,12 +18,13 @@ const (
 	K8sEmoji             = "☸️"
 	DeployEmoji          = "🚀"
 	AlertEmoji           = "🚨"
-	urlshortnerEmoji     = "🔗"
+	UrlshortenerEmoji    = "🔗"
 	SignalSatelliteEmoji = "📡"
 	ModernGopherEmoji    = "🤖"
 	GetBackEmoji         = "🔙"
 	RedirectEmoji        = "🔀"
 	SosEmoji             = "🆘"
+	DeleteEmoji          = "🗑️"
 )
 
 // Component constants for structured logging.
