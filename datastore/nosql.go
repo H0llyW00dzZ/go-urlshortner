@@ -65,7 +65,7 @@ func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error)
 		)
 		// Log the error with structured fields
 		// Note: This logger is specifically configured for CreateDatastoreClient and is synchronized with Google Cloud Datastore's and any Google Cloud Service (e.g, Google Cloud Auth) error handling in the binary world.
-		config.Logger.Error(logmonitor.AlertEmoji+" Failed to create client", logFields...)
+		config.Logger.Error(logmonitor.AlertEmoji+" "+DataStoreFailedtoCreateClient, logFields...)
 		return nil, err
 	}
 	return &Client{cloudClient}, nil
