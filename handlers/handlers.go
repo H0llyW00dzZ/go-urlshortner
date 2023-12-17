@@ -205,7 +205,7 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Bind the JSON payload to the UpdateURLPayload struct.
 		req, err := bindUpdatePayload(c)
 		if err != nil {
-			handleError(c, logmonitor.HeaderResponseINvalidRequest, http.StatusBadRequest, err)
+			handleError(c, logmonitor.HeaderResponseInvalidRequest, http.StatusBadRequest, err)
 			return
 		}
 

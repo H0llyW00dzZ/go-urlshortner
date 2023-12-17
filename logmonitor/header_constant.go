@@ -9,7 +9,7 @@ const (
 	HeaderResponseInvalidRequestJSONBinding = "Invalid request - JSON binding error"
 	HeaderResponseInvalidURLFormat          = "Invalid URL format"
 	HeaderResponseInvalidRequestPayload     = "Invalid request payload"
-	HeaderResponseINvalidRequest            = "Invalid request"
+	HeaderResponseInvalidRequest            = "Invalid request"
 	HeaderResponseURLDeleted                = "URL deleted successfully"
 	HeaderResponseIDandURLNotFound          = "ID and URL not found"
 	HeaderResponseForbidden                 = "Forbidden"
