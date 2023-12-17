@@ -317,7 +317,7 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 // handleDeletionError handles errors that occur during the URL deletion process.
 func handleDeletionError(c *gin.Context, err error) {
-	id := c.Param("id")
+	id := c.Param(logmonitor.HeaderID)
 	// Use the centralized logging function from logmonitor package
 	logFields := logmonitor.CreateLogFields("deleteURL",
 		logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
