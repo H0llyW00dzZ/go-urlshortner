@@ -25,6 +25,7 @@ const (
 
 // Define header for different components.
 const (
-	HeaderID  = "id"
-	HeaderURL = "url"
+	HeaderID      = "id"
+	HeaderURL     = "url"
+	HeaderMessage = "message"
 )
