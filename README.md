@@ -137,4 +137,4 @@ As the project is written in Go, we are considering the development of our own N
 
 ## Contributing
 
-Contributions are very much welcome! If you're thinking about making significant changes or improvements, please start by opening an issue. This allows us to have a discussion about the proposed changes and agree on the best approach before moving forward. We value your ideas and input, and we look forward to collaborating with you!
+Contributions are very much welcome! Whether you have ideas for improvements or want to help with existing issues, we value your input and collaboration. If you're considering making significant changes or have suggestions, please first open an issue to discuss your ideas. This ensures that we can agree on the best approach and that your efforts align well with the project's direction. To get started and understand our contribution process, please check out our [contributing guidelines](CONTRIBUTING.md). Following these guidelines will help ensure a smooth contribution process and increase the likelihood of your contributions being integrated into the project.
