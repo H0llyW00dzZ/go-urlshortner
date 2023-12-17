@@ -186,7 +186,7 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			logmonitor.WithID(id),
 		)
 
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  URL shortened and saved", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  "+logmonitor.URLShorteneredContextLog, logFields...)
 
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
@@ -223,13 +223,13 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 				logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
 			} else {
 				handleError(c, err.Error(), http.StatusInternalServerError, err)
-				logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Failed to update URL", logFields...)
+				logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
 			}
 			return
 		}
 
 		// Respond with the updated URL information.
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.ErrorEmoji+"  URL updated successfully", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLupdateContextLog, logFields...)
 		respondWithUpdatedURL(c, id)
 	}
 }
@@ -283,7 +283,7 @@ func respondWithUpdatedURL(c *gin.Context, id string) {
 func extractURL(c *gin.Context) (string, error) {
 	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Invalid request - JSON binding error", zap.Error(err))
+		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.HeaderResponseInvalidRequestJSONBinding, zap.Error(err))
 		return "", err
 	}
 
@@ -326,7 +326,7 @@ func handleDeletionError(c *gin.Context, err error) {
 	)
 
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Failed to validate deletion URL", logFields...)
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToValidateURLContextLog, logFields...)
 		c.JSON(http.StatusBadRequest, gin.H{
 			logmonitor.HeaderResponseError: badRequestErr.UserMessage,
 		})
