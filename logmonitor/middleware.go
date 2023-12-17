@@ -23,6 +23,7 @@ const (
 	ModernGopherEmoji    = "🤖"
 	GetBackEmoji         = "🔙"
 	RedirectEmoji        = "🔀"
+	SosEmoji             = "🆘"
 )
 
 // Component constants for structured logging.
