@@ -17,7 +17,8 @@ const (
 	ComponentCache             = "cache" // Currently unused.
 	ComponentProjectIDENV      = "projectid"
 	ComponentInternalSecretENV = "customsecretkey"
-	ComponentMachineOperation  = "signal"
+	ComponentMachineOperation  = "signal" // Currently unused.
+	ComponentGopher            = "hostmachine"
 )
 
 // Logger is a global variable to access the zap logger throughout the logmonitor package.
@@ -93,7 +94,7 @@ func WithError(err error) LogFieldOption {
 // WithSignal returns a LogFieldOption that adds a 'signal' field to the log.
 func WithSignal(signal os.Signal) LogFieldOption {
 	return func() zap.Field {
-		return zap.String("notify", signal.String())
+		return zap.String("signal_notify", signal.String())
 	}
 }
 
@@ -140,7 +141,7 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 
 		// Log details of the request with zap.
 		logger.Info("☸️  🗳️  Request Details",
-			zap.String("machine_start_time", startTimeFormatted), // The local time when the request is received
+			zap.String("hostmachine_start_time", startTimeFormatted), // The local time when the request is received
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),
