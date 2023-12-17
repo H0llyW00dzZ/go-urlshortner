@@ -123,7 +123,11 @@ func setupRouter(datastoreClient *datastore.Client, logger *zap.Logger) *gin.Eng
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	router := gin.Default()
+	// Set up the router without the default logger
+	router := gin.New()
+	router.Use(gin.Recovery()) // Using only the recovery middleware
+
+	// Using custom logging middleware with zap
 	router.Use(logmonitor.RequestLogger(logger))
 	handlers.RegisterHandlersGin(router, datastoreClient)
 
