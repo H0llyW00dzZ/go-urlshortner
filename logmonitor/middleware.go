@@ -55,11 +55,15 @@ type BadRequestError struct {
 }
 
 // Error returns the message of the underlying error.
+// This method allows BadRequestError to satisfy the error interface.
 func (e *BadRequestError) Error() string {
 	return e.Err.Error()
 }
 
 // NewBadRequestError creates a new instance of BadRequestError.
+// This function is used to construct an error with a user-friendly message
+// and an underlying error, which can be used to provide detailed error information
+// while also giving a clear message to the end-user.
 func NewBadRequestError(userMessage string, err error) *BadRequestError {
 	return &BadRequestError{
 		UserMessage: userMessage,
