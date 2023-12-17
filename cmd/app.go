@@ -168,10 +168,7 @@ func getServerPort() string {
 func runServer(server *http.Server, logger *zap.Logger) {
 	// Create log fields using the WithComponent function to convert string constants to zapcore.Field
 	logFields := logmonitor.CreateLogFields("runServer",
-		logmonitor.WithComponent(logmonitor.ComponentGopher),            // Use the constant ComponentGopher for the component
-		logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
-		logmonitor.WithComponent(logmonitor.ComponentProjectIDENV),      // Use the constant ComponentProjectIDENV for the component
-		logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
+		logmonitor.WithComponent(logmonitor.ComponentGopher), // Use the constant ComponentGopher for the component
 	)
 
 	// Add the server address and port to the log fields
@@ -204,9 +201,8 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 	// Gopher will tell info to that devops always monitor the logs
 	s := <-quit
 	logFields := logmonitor.CreateLogFields("waitForShutdownSignal",
-		logmonitor.WithComponent(logmonitor.ComponentGopher),           // Use the constant ComponentGopher for the component
-		logmonitor.WithComponent(logmonitor.ComponentMachineOperation), // Use the constant ComponentMachineOperation for the component
-		logmonitor.WithSignal(s),                                       // Use the WithSignal function from logmonitor
+		logmonitor.WithComponent(logmonitor.ComponentGopher), // Use the constant ComponentGopher for the component
+		logmonitor.WithSignal(s),                             // Use the WithSignal function from logmonitor
 	)
 	// Log the reception of the shutdown signal.
 	logger.Info("📡  Received signal", logFields...)
@@ -234,11 +230,8 @@ func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
 func handleStartupFailure(err error, logger *zap.Logger) {
 	// Log the error using the provided zap.Logger
 	logFields := logmonitor.CreateLogFields("handleStartupFailure",
-		logmonitor.WithComponent(logmonitor.ComponentGopher),            // Use the constant ComponentGopher for the component
-		logmonitor.WithComponent(logmonitor.ComponentNoSQL),             // Use the constant ComponentNoSQL for the component
-		logmonitor.WithComponent(logmonitor.ComponentProjectIDENV),      // Use the constant ComponentProjectIDENV for the component
-		logmonitor.WithComponent(logmonitor.ComponentInternalSecretENV), // Use the constant ComponentInternalSecretENV for the component
-		logmonitor.WithError(err),                                       // Include the error here, but it will be nil if there's no error
+		logmonitor.WithComponent(logmonitor.ComponentGopher), // Use the constant ComponentGopher for the component
+		logmonitor.WithError(err),                            // Include the error here, but it will be nil if there's no error
 	)
 	logger.Error("🆘  ⚠️  Startup failure", logFields...)
 
