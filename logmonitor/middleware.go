@@ -9,6 +9,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Define emojis for different log levels.
+const (
+	ErrorEmoji           = "❌"
+	SuccessEmoji         = "✅"
+	InfoEmoji            = "🛈"
+	WarningEmoji         = "⚠️"
+	K8sEmoji             = "☸️"
+	DeployEmoji          = "🚀"
+	AlertEmoji           = "🚨"
+	UrlshortenerEmoji    = "🔗"
+	SignalSatelliteEmoji = "📡"
+	ModernGopherEmoji    = "🤖"
+	GetBackEmoji         = "🔙"
+	RedirectEmoji        = "🔀"
+	SosEmoji             = "🆘"
+	DeleteEmoji          = "🗑️"
+	UpdateEmoji          = "🔄"
+	NewEmoji             = "🆕"
+)
+
 // Component constants for structured logging.
 // This is used to identify the component that is logging the message.
 const (
@@ -34,6 +54,23 @@ type BadRequestError struct {
 	Err         error
 }
 
+// Error returns the message of the underlying error.
+// This method allows BadRequestError to satisfy the error interface.
+func (e *BadRequestError) Error() string {
+	return e.Err.Error()
+}
+
+// NewBadRequestError creates a new instance of BadRequestError.
+// This function is used to construct an error with a user-friendly message
+// and an underlying error, which can be used to provide detailed error information
+// while also giving a clear message to the end-user.
+func NewBadRequestError(userMessage string, err error) *BadRequestError {
+	return &BadRequestError{
+		UserMessage: userMessage,
+		Err:         err,
+	}
+}
+
 // LogFieldOption defines a function signature for options that can be passed to createLogFields.
 type LogFieldOption func() zap.Field
 
@@ -50,10 +87,10 @@ func CreateLogFields(operation string, options ...LogFieldOption) []zap.Field {
 	return fields
 }
 
-// WithComponent returns a LogFieldOption that adds an 'internal' field to the log.
+// WithComponent returns a LogFieldOption that adds a 'component' field to the log.
 func WithComponent(component string) LogFieldOption {
 	return func() zap.Field {
-		return zap.String("internal", component)
+		return zap.String("component", component)
 	}
 }
 
@@ -75,23 +112,6 @@ func WithError(err error) LogFieldOption {
 func WithSignal(signal os.Signal) LogFieldOption {
 	return func() zap.Field {
 		return zap.String("signal_notify", signal.String())
-	}
-}
-
-// Error returns the message of the underlying error.
-// This method allows BadRequestError to satisfy the error interface.
-func (e *BadRequestError) Error() string {
-	return e.Err.Error()
-}
-
-// NewBadRequestError creates a new instance of BadRequestError.
-// This function is used to construct an error with a user-friendly message
-// and an underlying error, which can be used to provide detailed error information
-// while also giving a clear message to the end-user.
-func NewBadRequestError(userMessage string, err error) *BadRequestError {
-	return &BadRequestError{
-		UserMessage: userMessage,
-		Err:         err,
 	}
 }
 
@@ -119,9 +139,18 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 		// Calculate the duration taken for the request to be processed.
 		duration := time.Since(start)
 
-		// Log details of the request with zap.
-		logger.Info("☸️  🗳️  Request Details",
-			zap.String("hostmachine_start_time", startTimeFormatted), // The local time when the request is received
+		// Choose the emoji based on the HTTP status code.
+		statusEmoji := InfoEmoji
+		if c.Writer.Status() >= 400 && c.Writer.Status() < 500 {
+			statusEmoji = WarningEmoji
+		} else if c.Writer.Status() >= 500 {
+			statusEmoji = ErrorEmoji
+		}
+
+		// Log details of the request with zap, including the emoji.
+		// Here we add the K8sEmoji to the log message.
+		logger.Info(K8sEmoji+"  "+statusEmoji+"  Request Details",
+			zap.String("hostmachine_start_time", startTimeFormatted),
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),

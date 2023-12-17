@@ -124,10 +124,10 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 		if err != nil {
 			if err == datastore.ErrNotFound {
-				logmonitor.Logger.Info("🔙  URL not found", logFields...)
+				logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  URL not found", logFields...)
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 			} else {
-				logmonitor.Logger.Error("🆘  ⚠️  Failed to get URL", logFields...)
+				logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Failed to get URL", logFields...)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			}
 			return
@@ -136,13 +136,13 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Check if URL is nil after the GetURL call
 		if url == nil {
 			// Use the logmonitor's logging function for consistency
-			logmonitor.Logger.Error("🆘  ⚠️  URL is nil after GetURL call", logFields...)
+			logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  URL is nil after GetURL call", logFields...)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
 		// If there's no error and you're logging a successful retrieval, use the same logFields
-		logmonitor.Logger.Info("🔗  ↪️  ✅  URL retrieved successfully", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.RedirectEmoji+"  "+logmonitor.SuccessEmoji+"  URL retrieved successfully", logFields...)
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
@@ -178,7 +178,7 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			logmonitor.WithID(id),
 		)
 
-		logmonitor.Logger.Info("🔗  ✅  URL shortened and saved", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  URL shortened and saved", logFields...)
 
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
@@ -210,16 +210,16 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		if err != nil {
 			if strings.Contains(err.Error(), "URL mismatch") {
 				handleError(c, err.Error(), http.StatusBadRequest, err)
-				logmonitor.Logger.Info("🔄  ❌  URL mismatch", logFields...)
+				logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.ErrorEmoji+"  URL mismatch", logFields...)
 			} else {
 				handleError(c, err.Error(), http.StatusInternalServerError, err)
-				logmonitor.Logger.Info("🚨  ⚠️  Failed to update URL", logFields...)
+				logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Failed to update URL", logFields...)
 			}
 			return
 		}
 
 		// Respond with the updated URL information.
-		logmonitor.Logger.Info("🔗  🆕  ✅  URL updated successfully", logFields...)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.ErrorEmoji+"  URL updated successfully", logFields...)
 		respondWithUpdatedURL(c, id)
 	}
 }
@@ -273,13 +273,13 @@ func respondWithUpdatedURL(c *gin.Context, id string) {
 func extractURL(c *gin.Context) (string, error) {
 	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		Logger.Info("🚨  ⚠️  Invalid request - JSON binding error", zap.Error(err))
+		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Invalid request - JSON binding error", zap.Error(err))
 		return "", err
 	}
 
 	// Check if the URL is in a valid format.
 	if req.URL == "" || !isValidURL(req.URL) {
-		Logger.Info("🚨  ⚠️  Invalid URL format", zap.String("url", req.URL))
+		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Invalid URL format", zap.String("url", req.URL))
 		return "", fmt.Errorf("invalid URL format")
 	}
 
@@ -297,7 +297,7 @@ func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		if err := validateAndDeleteURL(c, dsClient); err != nil {
 			handleDeletionError(c, err)
 		} else {
-			logmonitor.Logger.Info("🔗  🗑️  ✅  URL deleted successfully", logFields...)
+			logmonitor.Logger.Info(logmonitor.DeleteEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.SuccessEmoji+"  URL deleted successfully", logFields...)
 			c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
 		}
 	}
@@ -314,13 +314,13 @@ func handleDeletionError(c *gin.Context, err error) {
 	)
 
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		logmonitor.Logger.Info("🚨  ⚠️  Failed to validate deletion URL", logFields...)
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  Failed to validate deletion URL", logFields...)
 		c.JSON(http.StatusBadRequest, gin.H{"error": badRequestErr.UserMessage})
 	} else if err == datastore.ErrNotFound {
-		logmonitor.Logger.Info("🚨  ⚠️  URL not found for deletion", logFields...)
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  URL not found for deletion", logFields...)
 		c.JSON(http.StatusNotFound, gin.H{"error": "ID and URL not found"})
 	} else {
-		logmonitor.Logger.Error("🆘  ⚠️  Failed to delete URL", logFields...)
+		logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Failed to delete URL", logFields...)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 	}
 }
@@ -433,8 +433,8 @@ func handleError(c *gin.Context, message string, statusCode int, err error) {
 	// Use different emojis based on the status code
 	switch {
 	case statusCode >= 500: // 5xx errors are still logged as errors
-		emoji = "🆘  ⚠️  "
-		logmonitor.Logger.Error(emoji+" "+message, zap.Error(err))
+		emoji = logmonitor.ErrorEmoji
+		Logger.Error(emoji+"  "+message, zap.Error(err))
 	}
 
 	c.AbortWithStatusJSON(statusCode, gin.H{"error": message})
