@@ -9,17 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Component constants for structured logging.
-// This is used to identify the component that is logging the message.
-const (
-	ComponentNoSQL             = "datastore"
-	ComponentCache             = "cache" // Currently unused.
-	ComponentProjectIDENV      = "projectid"
-	ComponentInternalSecretENV = "customsecretkey"
-	ComponentMachineOperation  = "signal" // Currently unused.
-	ComponentGopher            = "hostmachine"
-)
-
 // Logger is a global variable to access the zap logger throughout the logmonitor package.
 var Logger *zap.Logger
 
