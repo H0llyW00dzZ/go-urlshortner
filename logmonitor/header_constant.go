@@ -4,8 +4,6 @@ package logmonitor
 const (
 	HeaderResponseError               = "error"
 	HeaderResponseInternalServerError = "internal server error"
-	HeaderResponseID                  = "id"
-	HeaderResponseURL                 = "url"
 	HeaderResponseshortened_url       = "shortened_url"
 )
 
@@ -13,4 +11,10 @@ const (
 const (
 	HeaderRequestOldURL = "old_url"
 	HeaderRequestNewURL = "new_url"
+)
+
+// Define header for different components.
+const (
+	HeaderID  = "id"
+	HeaderURL = "url"
 )
