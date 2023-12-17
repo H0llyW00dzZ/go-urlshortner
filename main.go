@@ -183,13 +183,13 @@ func runServer(server *http.Server, logger *zap.Logger) {
 	// Testing human readable logging
 	// Gopher will tell info to that devops always monitor the logs
 	// Log the server starting message with the common fields
-	logger.Info("🚀  Server is starting and Listening on address "+server.Addr, logFields...)
+	logger.Info(logmonitor.DeployEmoji+"  Server is starting and Listening on address "+server.Addr, logFields...)
 
 	// Attempt to start the server
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		// Add the error to the log fields for error logging
 		errorLogFields := append(logFields, logmonitor.WithError(err)())
-		logger.Error("🆘  ⚠️  Server failed to start", errorLogFields...)
+		logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Server failed to start", errorLogFields...)
 		os.Exit(1)
 	}
 }
@@ -209,7 +209,7 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 		logmonitor.WithSignal(s),                             // Use the WithSignal function from logmonitor
 	)
 	// Log the reception of the shutdown signal.
-	logger.Info("📡  Received signal", logFields...)
+	logger.Info(logmonitor.SignalSatelliteEmoji+"  Received signal", logFields...)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -217,7 +217,7 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 	logger.Info("Shutting down server...")
 	if err := server.Shutdown(ctx); err != nil {
 		// Log the error using the fields and include the error message.
-		logger.Fatal("🆘  ⚠️  Server forced to shutdown:", logFields...)
+		logger.Fatal(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Server forced to shutdown:", logFields...)
 	}
 }
 
@@ -225,7 +225,7 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
 	logger.Info("Closing datastore client...")
 	if err := datastore.CloseClient(datastoreClient); err != nil {
-		logger.Error("🆘  ⚠️  Failed to close datastore client", zap.Error(err))
+		logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Failed to close datastore client", zap.Error(err))
 	}
 
 	logger.Info("Server exiting")
@@ -237,7 +237,7 @@ func handleStartupFailure(err error, logger *zap.Logger) {
 		logmonitor.WithComponent(logmonitor.ComponentGopher), // Use the constant ComponentGopher for the component
 		logmonitor.WithError(err),                            // Include the error here, but it will be nil if there's no error
 	)
-	logger.Error("🆘  ⚠️  Startup failure", logFields...)
+	logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Startup failure", logFields...)
 
 	// Optionally, print the error using the bannercli package.
 	bannercli.PrintTypingBanner(err.Error(), 100*time.Millisecond)
