@@ -10,7 +10,7 @@ const (
 	HeaderResponseInvalidURLFormat          = "Invalid URL format"
 	HeaderResponseURLDeleted                = "URL deleted successfully"
 	HeaderResponseIDandURLNotFound          = "ID and URL not found"
-	HeaderResponseForbiddden                = "Forbidden"
+	HeaderResponseForbidden                 = "Forbidden"
 )
 
 // Define header request for different components.
