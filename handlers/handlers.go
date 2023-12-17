@@ -76,7 +76,7 @@ func init() {
 func InternalOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Check the request header against the expected secret value.
-		if c.GetHeader("X-Internal-Secret") != internalSecretValue {
+		if c.GetHeader(logmonitor.HeaderXinternalSecret) != internalSecretValue {
 			// If the header does not match the expected secret, abort the request.
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				logmonitor.HeaderResponseError: logmonitor.HeaderResponseForbidden,
