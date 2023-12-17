@@ -17,7 +17,7 @@ const (
 	ComponentCache             = "cache" // Currently unused.
 	ComponentProjectIDENV      = "projectid"
 	ComponentInternalSecretENV = "customsecretkey"
-	ComponentMachineOperation  = "signal"
+	ComponentMachineOperation  = "signal" // Currently unused.
 	ComponentGopher            = "hostmachine"
 )
 
@@ -94,7 +94,7 @@ func WithError(err error) LogFieldOption {
 // WithSignal returns a LogFieldOption that adds a 'signal' field to the log.
 func WithSignal(signal os.Signal) LogFieldOption {
 	return func() zap.Field {
-		return zap.String("notify", signal.String())
+		return zap.String("signal_notify", signal.String())
 	}
 }
 
