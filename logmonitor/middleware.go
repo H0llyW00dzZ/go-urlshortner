@@ -18,6 +18,7 @@ const (
 	ComponentProjectIDENV      = "projectid"
 	ComponentInternalSecretENV = "customsecretkey"
 	ComponentMachineOperation  = "signal"
+	ComponentGopher            = "hostmachine"
 )
 
 // Logger is a global variable to access the zap logger throughout the logmonitor package.
