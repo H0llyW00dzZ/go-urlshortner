@@ -140,7 +140,7 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 
 		// Log details of the request with zap, including the emoji.
 		// Here we add the K8sEmoji to the log message.
-		logger.Info(K8sEmoji+" "+statusEmoji+" Request Details",
+		logger.Info(K8sEmoji+"  "+statusEmoji+"  Request Details",
 			zap.String("hostmachine_start_time", startTimeFormatted),
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
