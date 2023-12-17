@@ -25,7 +25,10 @@ const (
 
 // Define header for different components.
 const (
-	HeaderID      = "id"
-	HeaderURL     = "url"
-	HeaderMessage = "message"
+	HeaderID          = "id"
+	HeaderURL         = "url"
+	HeaderMessage     = "message"
+	HeaderSchemeHTTP  = "http"
+	HeaderSchemeHTTPS = "https"
+	HeaderXProto      = "X-Forwarded-Proto"
 )
