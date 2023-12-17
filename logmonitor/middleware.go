@@ -9,26 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Define emojis for different log levels.
-const (
-	ErrorEmoji           = "❌"
-	SuccessEmoji         = "✅"
-	InfoEmoji            = "🛈"
-	WarningEmoji         = "⚠️"
-	K8sEmoji             = "☸️"
-	DeployEmoji          = "🚀"
-	AlertEmoji           = "🚨"
-	UrlshortenerEmoji    = "🔗"
-	SignalSatelliteEmoji = "📡"
-	ModernGopherEmoji    = "🤖"
-	GetBackEmoji         = "🔙"
-	RedirectEmoji        = "🔀"
-	SosEmoji             = "🆘"
-	DeleteEmoji          = "🗑️"
-	UpdateEmoji          = "🔄"
-	NewEmoji             = "🆕"
-)
-
 // Component constants for structured logging.
 // This is used to identify the component that is logging the message.
 const (

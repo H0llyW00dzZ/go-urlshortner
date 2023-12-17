@@ -37,7 +37,7 @@ func main() {
 	// Initialize the zap logger with a development configuration.
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		fmt.Fprintf(os.Stderr, logmonitor.FailedToIntializeLoggerContextLog+" %v\n", err)
 		os.Exit(1)
 	}
 	defer logger.Sync() // Flush any buffered log entries
@@ -67,7 +67,7 @@ func setupDatastoreClient(ctx context.Context, logger *zap.Logger) (*datastore.C
 	datastoreConfig := datastore.NewConfig(logger, projectID)
 	datastoreClient, err := datastore.CreateDatastoreClient(ctx, datastoreConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create datastore client: %v", err)
+		return nil, fmt.Errorf(logmonitor.FailedToCreateDatastoreClientContextLog+" %v", err)
 	}
 
 	if err := testClientConnection(ctx, datastoreClient); err != nil {
@@ -88,7 +88,7 @@ func testClientConnection(ctx context.Context, client *datastore.Client) error {
 		return nil
 	} else if err != nil {
 		// Any other error means there's a problem with the connection or authorization.
-		return fmt.Errorf("datastore client failed health check: %v", err)
+		return fmt.Errorf(logmonitor.DatastoreFailedtoCheckHealthContextLog+" %v", err)
 	}
 	// If there's no error, the client is connected and working.
 	return nil
@@ -99,7 +99,7 @@ func checkEnvironment(logger *zap.Logger) error {
 	// Check for the presence of required environment variables
 	projectID := os.Getenv("DATASTORE_PROJECT_ID")
 	if projectID == "" {
-		return fmt.Errorf("DATASTORE_PROJECT_ID environment variable is not set")
+		return fmt.Errorf(logmonitor.DataStoreProjectIDEnvContextLog)
 	}
 	return nil
 }
@@ -111,7 +111,7 @@ func initializeDatastoreClient(ctx context.Context, logger *zap.Logger) (*datast
 	datastoreConfig := datastore.NewConfig(logger, projectID)                     // Create a new Config instance
 	datastoreClient, err := datastore.CreateDatastoreClient(ctx, datastoreConfig) // Pass the config
 	if err != nil {
-		return nil, fmt.Errorf("failed to create datastore client: %v", err)
+		return nil, fmt.Errorf(logmonitor.FailedtoCloseDatastoreContextLog+" %v", err)
 	}
 	return datastoreClient, nil
 }
@@ -183,13 +183,13 @@ func runServer(server *http.Server, logger *zap.Logger) {
 	// Testing human readable logging
 	// Gopher will tell info to that devops always monitor the logs
 	// Log the server starting message with the common fields
-	logger.Info(logmonitor.DeployEmoji+"  Server is starting and Listening on address "+server.Addr, logFields...)
+	logger.Info(logmonitor.DeployEmoji+"  "+logmonitor.ServerStartContextLog+" "+server.Addr, logFields...)
 
 	// Attempt to start the server
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		// Add the error to the log fields for error logging
 		errorLogFields := append(logFields, logmonitor.WithError(err)())
-		logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Server failed to start", errorLogFields...)
+		logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.ServerFailContextLog, errorLogFields...)
 		os.Exit(1)
 	}
 }
@@ -209,7 +209,7 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 		logmonitor.WithSignal(s),                             // Use the WithSignal function from logmonitor
 	)
 	// Log the reception of the shutdown signal.
-	logger.Info(logmonitor.SignalSatelliteEmoji+"  Received signal", logFields...)
+	logger.Info(logmonitor.SignalSatelliteEmoji+"  "+logmonitor.SignalContextLog, logFields...)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -217,7 +217,7 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 	logger.Info("Shutting down server...")
 	if err := server.Shutdown(ctx); err != nil {
 		// Log the error using the fields and include the error message.
-		logger.Fatal(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Server forced to shutdown:", logFields...)
+		logger.Fatal(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.ServerForcetoShutdownContextLog, logFields...)
 	}
 }
 
@@ -225,7 +225,7 @@ func waitForShutdownSignal(server *http.Server, logger *zap.Logger) {
 func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
 	logger.Info("Closing datastore client...")
 	if err := datastore.CloseClient(datastoreClient); err != nil {
-		logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Failed to close datastore client", zap.Error(err))
+		logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedtoCloseDatastoreContextLog, zap.Error(err))
 	}
 
 	logger.Info("Server exiting")
@@ -237,7 +237,7 @@ func handleStartupFailure(err error, logger *zap.Logger) {
 		logmonitor.WithComponent(logmonitor.ComponentGopher), // Use the constant ComponentGopher for the component
 		logmonitor.WithError(err),                            // Include the error here, but it will be nil if there's no error
 	)
-	logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  Startup failure", logFields...)
+	logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.StartupFailureContextLog, logFields...)
 
 	// Optionally, print the error using the bannercli package.
 	bannercli.PrintTypingBanner(err.Error(), 100*time.Millisecond)
