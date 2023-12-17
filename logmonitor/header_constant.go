@@ -15,6 +15,7 @@ const (
 	HeaderResponseForbidden                 = "Forbidden"
 	HeaderResponseFailedtoGenerateID        = "Failed to generate ID"
 	HeaderResponseFailedtoSaveURL           = "Failed to save URL"
+	HeaderResponseStatus                    = "status"
 )
 
 // Define header request for different components.
