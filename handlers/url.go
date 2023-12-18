@@ -242,7 +242,8 @@ func deleteURL(c *gin.Context, dsClient *datastore.Client, id string, providedUR
 	}
 
 	if currentURL.Original != providedURL {
-		return fmt.Errorf(constant.URLmismatchContextLog)
+		// Return a URLMismatchError instead of a generic error.
+		return &URLMismatchError{Message: constant.URLmismatchContextLog}
 	}
 
 	return performDelete(c, dsClient, id)
