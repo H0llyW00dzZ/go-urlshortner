@@ -16,6 +16,7 @@ const (
 	URLdeleteContextLog                         = "URL deleted"
 	URLisNilContextLog                          = "URL is nil after GetURL call"
 	URLRetriveContextLog                        = "URL retrieved successfully"
+	URLDeletedSuccessfullyContextLog            = "URL deleted successfully"
 	ServerStartContextLog                       = "Server is starting and Listening on address"
 	ServerFailContextLog                        = "Server failed to start"
 	SignalContextLog                            = "Signal received"

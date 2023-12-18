@@ -45,7 +45,7 @@ func handleDeletionError(c *gin.Context, err error) {
 	id := c.Param(constant.HeaderID)
 	// Use the centralized logging function from logmonitor package
 	logFields := logmonitor.CreateLogFields("deleteURL",
-		logmonitor.WithComponent(constant.ComponentGopher), // Use the constant for the component
+		logmonitor.WithComponent(constant.ComponentGopher),
 		logmonitor.WithID(id),
 		logmonitor.WithError(err),
 	)
@@ -56,33 +56,38 @@ func handleDeletionError(c *gin.Context, err error) {
 		c.JSON(http.StatusNotFound, gin.H{
 			constant.HeaderResponseError: constant.HeaderResponseIDandURLNotFound,
 		})
-	case strings.Contains(err.Error(), constant.URLmismatchContextLog):
-		logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.URLmismatchContextLog, logFields...)
+	case strings.Contains(err.Error(), constant.PathIDandPayloadIDDoesnotMatchContextLog):
+		// This is a client error, so we should return a 400 status code.
+		logmonitor.Logger.Info(constant.ErrorEmoji+"  "+constant.WarningEmoji+"  "+constant.URLmismatchContextLog, logFields...)
 		c.JSON(http.StatusBadRequest, gin.H{
-			constant.HeaderResponseError: constant.URLmismatchContextLog,
-		})
-	case err.(*logmonitor.BadRequestError) != nil:
-		badRequestErr := err.(*logmonitor.BadRequestError)
-		logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.HeaderResponseInvalidRequestJSONBinding, logFields...)
-		c.JSON(http.StatusBadRequest, gin.H{
-			constant.HeaderResponseError: badRequestErr.UserMessage,
+			constant.HeaderResponseError: constant.PathIDandPayloadIDDoesnotMatchContextLog,
 		})
 	default:
-		logmonitor.Logger.Error(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToDeletedURLContextLog, logFields...)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
-		})
+		if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
+			logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.HeaderResponseInvalidRequestJSONBinding, logFields...)
+			c.JSON(http.StatusBadRequest, gin.H{
+				constant.HeaderResponseError: badRequestErr.UserMessage,
+			})
+		} else {
+			// For other types of errors, respond with a 500 Internal Server Error.
+			logmonitor.Logger.Error(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToDeletedURLContextLog, logFields...)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
+			})
+		}
 	}
 }
 
 // handleRetrievalError logs an error message for a failed retrieval attempt and returns a formatted error.
 // If the error is a 'not found' error, it logs a specific message for that case.
 func handleRetrievalError(err error, id string) error {
-	logFields := createLogFields(id)
+	// Add an operation name as the first argument to createLogFields.
+	logFields := createLogFields("retrieveURL", id)
 	if err == datastore.ErrNotFound {
+		logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.NoURLIDContextLog, logFields...)
 		return datastore.ErrNotFound // Return the original error directly
 	}
-	logmonitor.Logger.Error(constant.FailedToRetriveURLContextLog+": "+err.Error(), logFields...)
+	logmonitor.Logger.Error(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToRetriveURLContextLog, logFields...)
 	return err // Return the original error directly
 }
 
