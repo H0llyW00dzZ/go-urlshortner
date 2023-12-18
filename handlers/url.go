@@ -5,10 +5,8 @@ import (
 	"net/http"
 
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
-	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // getURLHandlerGin returns a Gin handler function that retrieves and redirects to the original
@@ -16,25 +14,24 @@ import (
 // or an error occurs, the handler responds with the appropriate HTTP status code and error message.
 func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Extract the identifier from the request path.
 		id := c.Param(constant.HeaderID)
 
-		// Assuming datastore.GetURL is a function that correctly handles datastore operations.
+		// Attempt to retrieve the URL from the datastore using the provided identifier.
 		url, err := datastore.GetURL(c, dsClient, id)
-		// Declare logFields here so it's accessible throughout the function scope
-		logFields := logmonitor.CreateLogFields("getURL",
-			logmonitor.WithComponent(constant.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithID(id),
-			logmonitor.WithError(err), // Include the error here, but it will be nil if there's no error
-		)
 
+		// Error handling block.
 		if err != nil {
+			// If the URL is not found, log the event and return a 404 Not Found response.
 			if err == datastore.ErrNotFound {
-				logmonitor.Logger.Info(constant.GetBackEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.URLnotfoundContextLog, logFields...)
+				// Use the centralized logging function to log the 'URL not found' event.
+				LogURLNotFound(id, err)
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 					constant.HeaderResponseError: constant.URLnotfoundContextLog,
 				})
 			} else {
-				logmonitor.Logger.Error(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToGetURLContextLog, logFields...)
+				// For any other errors, log the internal error event and return a 500 Internal Server Error response.
+				LogInternalError("getURL", id, err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
 				})
@@ -42,25 +39,26 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		// Check if URL is nil after the GetURL call
+		// If the retrieved URL is nil, log the error and return a 500 Internal Server Error response.
 		if url == nil {
-			// Use the logmonitor's logging function for consistency
-			logmonitor.Logger.Error(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.URLisNilContextLog, logFields...)
+			LogInternalError("getURL", id, fmt.Errorf(constant.URLisNilContextLog))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
 			})
 			return
 		}
 
-		// If there's no error and you're logging a successful retrieval, use the same logFields
-		logmonitor.Logger.Info(constant.UrlshortenerEmoji+"  "+constant.RedirectEmoji+"  "+constant.SuccessEmoji+"  "+constant.URLRetriveContextLog, logFields...)
+		// Log the successful retrieval of the URL.
+		LogURLRetrievalSuccess(id)
+
+		// Redirect the client to the original URL associated with the identifier.
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
 
 // postURLHandlerGin returns a Gin handler function that handles the creation of a new shortened
 // URL. It expects a JSON payload with the original URL, generates a short identifier, and stores
-// the mapping in Google Cloud Datastore. If successful, it returns the generated identifier and
+// the mapping in the datastore. If successful, it returns the generated identifier and
 // the shortened URL; otherwise, it responds with an error.
 func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -72,7 +70,7 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Generate a short identifier for the URL.
-		id, err := generateShortID(c.Request.Context(), dsClient) // Pass the request context and datastore client
+		id, err := generateShortID(c.Request.Context(), dsClient)
 		if err != nil {
 			handleError(c, constant.HeaderResponseFailedtoGenerateID, http.StatusInternalServerError, err)
 			return
@@ -84,12 +82,8 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		logFields := logmonitor.CreateLogFields("postURL",
-			logmonitor.WithComponent(constant.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithID(id),
-		)
-
-		logmonitor.Logger.Info(constant.UrlshortenerEmoji+"  "+constant.SuccessEmoji+"  "+constant.URLShorteneredContextLog, logFields...)
+		// Use the centralized logging function to log the successful shortening of the URL.
+		LogURLShortened(id)
 
 		// Construct the full shortened URL and return it in the response.
 		fullShortenedURL := constructFullShortenedURL(c, id)
@@ -123,29 +117,16 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload, err error) {
 	pathID = c.Param(constant.HeaderID)
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logFields := logmonitor.CreateLogFields("validateUpdateRequest",
-			logmonitor.WithComponent(constant.ComponentGopher),
-			logmonitor.WithID(pathID),
-			logmonitor.WithError(err),
-		)
-		// Return a BadRequestError if JSON binding fails
-		// Friendly error message for the user, and the original error for logging purposes
-		// Log the error with structured logging
-		logmonitor.Logger.Info(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidRequestJSONBinding, logFields...)
-
-		// Return a BadRequestError with the actual error
+		// Use the centralized logging function to log the bad request error.
+		LogBadRequestError("validateUpdateRequest", err)
 		return "", req, err
 	}
 
 	// Additional validation for the ID in the URL and the ID in the payload
 	if pathID != req.ID {
 		err := fmt.Errorf(constant.PathIDandPayloadIDDoesnotMatchContextLog)
-		logFields := logmonitor.CreateLogFields("validateUpdateRequest",
-			logmonitor.WithComponent(constant.ComponentGopher),
-			logmonitor.WithID(pathID),
-			logmonitor.WithError(err),
-		)
-		logmonitor.Logger.Info(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidRequestPayload, logFields...)
+		// Use the centralized logging function to log the mismatch error.
+		LogMismatchError(pathID)
 		return "", req, err
 	}
 
@@ -163,7 +144,7 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 	}
 
 	if currentURL.Original != req.OldURL {
-		logMismatchError(id)
+		LogMismatchError(id)
 		return fmt.Errorf(constant.URLmismatchContextLog)
 	}
 
@@ -193,13 +174,15 @@ func respondWithUpdatedURL(c *gin.Context, id string) {
 func extractURL(c *gin.Context) (string, error) {
 	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		Logger.Info(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidRequestJSONBinding, zap.Error(err))
+		// Replace the direct logger call with a centralized logging function
+		LogBadRequestError("extractURL", err)
 		return "", err
 	}
 
 	// Check if the URL is in a valid format.
 	if req.URL == "" || !isValidURL(req.URL) {
-		Logger.Info(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidURLFormat, zap.String("url", req.URL))
+		// Replace the direct logger call with a centralized logging function
+		LogInvalidURLFormat(req.URL)
 		return "", fmt.Errorf(constant.HeaderResponseInvalidURLFormat)
 	}
 
@@ -209,15 +192,14 @@ func extractURL(c *gin.Context) (string, error) {
 // deleteURLHandlerGin returns a Gin handler function that handles the deletion of an existing shortened URL.
 func deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Use the centralized logging function from logmonitor package
-		logFields := logmonitor.CreateLogFields("deleteURL",
-			logmonitor.WithComponent(constant.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithID(c.Param(constant.HeaderID)),
-		)
+		id := c.Param(constant.HeaderID)
 		if err := validateAndDeleteURL(c, dsClient); err != nil {
+			// Use the centralized logging function to log the deletion error.
+			LogDeletionError(id, err)
 			handleDeletionError(c, err)
 		} else {
-			logmonitor.Logger.Info(constant.DeleteEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.SuccessEmoji+"  "+constant.HeaderResponseURLDeleted, logFields...)
+			// Use the centralized logging function to log the successful deletion.
+			LogURLDeletionSuccess(id)
 			c.JSON(http.StatusOK, gin.H{
 				constant.HeaderMessage: constant.HeaderResponseURLDeleted,
 			})
@@ -232,21 +214,20 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 	// Bind the JSON payload to the DeleteURLPayload struct.
 	var req DeleteURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		return logmonitor.NewBadRequestError(constant.HeaderResponseInvalidRequestPayload, err)
+		LogBadRequestError("deleteURL", err) // Log the bad request error
+		return fmt.Errorf(constant.HeaderResponseInvalidRequestPayload+": %v", err)
 	}
 
 	// Check if the IDs match
 	if idFromPath != req.ID {
-		return logmonitor.NewBadRequestError(
-			constant.MisMatchBetweenPathIDandPayloadIDContextLog,
-			fmt.Errorf(constant.PathIDandPayloadIDDoesnotMatchContextLog))
+		LogMismatchError(idFromPath) // Log the mismatch error
+		return fmt.Errorf(constant.PathIDandPayloadIDDoesnotMatchContextLog)
 	}
 
 	// Validate the URL format.
 	if !isValidURL(req.URL) {
-		return logmonitor.NewBadRequestError(
-			constant.HeaderResponseInvalidURLFormat,
-			fmt.Errorf(constant.HeaderResponseInvalidURLFormat))
+		LogInvalidURLFormat(req.URL) // Log the invalid URL format error
+		return fmt.Errorf(constant.HeaderResponseInvalidURLFormat)
 	}
 
 	// Perform the delete operation.
