@@ -62,6 +62,14 @@ func handleDeletionError(c *gin.Context, err error) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			constant.HeaderResponseError: constant.PathIDandPayloadIDDoesnotMatchContextLog,
 		})
+	case strings.Contains(err.Error(), constant.HeaderResponseInvalidRequestPayload):
+		// This is also a client error bad request, so we should return a 400 status code.
+		// Return a BadRequestError if JSON binding fails
+		// Friendly error message for the user, and the original error for logging purposes
+		logmonitor.Logger.Info(constant.ErrorEmoji+"  "+constant.WarningEmoji+"  "+constant.URLmismatchContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			constant.HeaderResponseError: constant.HeaderResponseInvalidRequestPayload,
+		})
 	default:
 		if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
 			logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.HeaderResponseInvalidRequestJSONBinding, logFields...)
