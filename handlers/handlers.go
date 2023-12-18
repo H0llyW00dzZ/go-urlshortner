@@ -34,21 +34,21 @@ func SetLogger(logger *zap.Logger) {
 // CreateURLPayload defines the structure for the JSON payload when creating a new URL.
 // It contains a single field, URL, which is the original URL to be shortened.
 type CreateURLPayload struct {
-	URL string `json:"url"`
+	URL string `json:"url" binding:"required,url"`
 }
 
 // UpdateURLPayload defines the structure for the JSON payload when updating an existing URL.
 // Fixed a bug potential leading to Exploit CWE-284 / IDOR in the json payloads, Now It's safe A long With ID.
 type UpdateURLPayload struct {
-	ID     string `json:"id"`
-	OldURL string `json:"old_url"`
-	NewURL string `json:"new_url"`
+	ID     string `json:"id" binding:"required"`
+	OldURL string `json:"old_url" binding:"required,url"`
+	NewURL string `json:"new_url" binding:"required,url"`
 }
 
 // DeleteURLPayload defines the structure for the JSON payload when deleting a URL.
 type DeleteURLPayload struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	ID  string `json:"id" binding:"required"`
+	URL string `json:"url" binding:"required,url"`
 }
 
 func init() {
@@ -203,7 +203,8 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pathID, req, err := validateUpdateRequest(c)
 		if err != nil {
-			handleError(c, err.Error(), http.StatusBadRequest, err)
+			// Handle the error, including the case where the JSON fields don't match
+			handleError(c, logmonitor.HeaderResponseInvalidRequestPayload, http.StatusBadRequest, err)
 			return
 		}
 
@@ -220,13 +221,31 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // validateUpdateRequest validates the update request and extracts the path ID and request payload.
 func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload, err error) {
 	pathID = c.Param(logmonitor.HeaderID)
-
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logFields := logmonitor.CreateLogFields("validateUpdateRequest",
+			logmonitor.WithComponent(logmonitor.ComponentGopher),
+			logmonitor.WithID(pathID),
+			logmonitor.WithError(err),
+		)
+		// Return a BadRequestError if JSON binding fails
+		// Friendly error message for the user, and the original error for logging purposes
+		// Log the error with structured logging
+		logmonitor.Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.HeaderResponseInvalidRequestJSONBinding, logFields...)
+
+		// Return a BadRequestError with the actual error
 		return "", req, err
 	}
 
+	// Additional validation for the ID in the URL and the ID in the payload
 	if pathID != req.ID {
-		return "", req, fmt.Errorf(logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog)
+		err := fmt.Errorf(logmonitor.PathIDandPayloadIDDoesnotMatchContextLog)
+		logFields := logmonitor.CreateLogFields("validateUpdateRequest",
+			logmonitor.WithComponent(logmonitor.ComponentGopher),
+			logmonitor.WithID(pathID),
+			logmonitor.WithError(err),
+		)
+		logmonitor.Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.HeaderResponseInvalidRequestPayload, logFields...)
+		return "", req, err
 	}
 
 	return pathID, req, nil
@@ -235,7 +254,7 @@ func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload,
 // handleUpdateError handles errors that occur during the URL update process.
 func handleUpdateError(c *gin.Context, id string, err error) {
 	logFields := logmonitor.CreateLogFields("editURL",
-		logmonitor.WithComponent(logmonitor.ComponentNoSQL),
+		logmonitor.WithComponent(logmonitor.ComponentGopher),
 		logmonitor.WithID(id),
 		logmonitor.WithError(err),
 	)
@@ -358,13 +377,13 @@ func respondWithUpdatedURL(c *gin.Context, id string) {
 func extractURL(c *gin.Context) (string, error) {
 	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.HeaderResponseInvalidRequestJSONBinding, zap.Error(err))
+		Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.HeaderResponseInvalidRequestJSONBinding, zap.Error(err))
 		return "", err
 	}
 
 	// Check if the URL is in a valid format.
 	if req.URL == "" || !isValidURL(req.URL) {
-		Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.HeaderResponseInvalidURLFormat, zap.String("url", req.URL))
+		Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.HeaderResponseInvalidURLFormat, zap.String("url", req.URL))
 		return "", fmt.Errorf(logmonitor.HeaderResponseInvalidURLFormat)
 	}
 
@@ -395,7 +414,7 @@ func handleDeletionError(c *gin.Context, err error) {
 	id := c.Param(logmonitor.HeaderID)
 	// Use the centralized logging function from logmonitor package
 	logFields := logmonitor.CreateLogFields("deleteURL",
-		logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
+		logmonitor.WithComponent(logmonitor.ComponentGopher), // Use the constant for the component
 		logmonitor.WithID(id),
 		logmonitor.WithError(err),
 	)
@@ -413,7 +432,7 @@ func handleDeletionError(c *gin.Context, err error) {
 		})
 	case err.(*logmonitor.BadRequestError) != nil:
 		badRequestErr := err.(*logmonitor.BadRequestError)
-		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToValidateURLContextLog, logFields...)
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.HeaderResponseInvalidRequestJSONBinding, logFields...)
 		c.JSON(http.StatusBadRequest, gin.H{
 			logmonitor.HeaderResponseError: badRequestErr.UserMessage,
 		})
@@ -533,6 +552,13 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 // handleError logs the error and sends a JSON response with the error message and status code.
 func handleError(c *gin.Context, message string, statusCode int, err error) {
 	var emoji string
+
+	// Check if the error is a BadRequestError and unwrap it if it is
+	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
+		message = badRequestErr.UserMessage
+		statusCode = http.StatusBadRequest
+		err = badRequestErr.Err
+	}
 
 	// Use different emojis based on the status code
 	switch {
