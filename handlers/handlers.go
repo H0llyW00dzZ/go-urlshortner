@@ -34,21 +34,21 @@ func SetLogger(logger *zap.Logger) {
 // CreateURLPayload defines the structure for the JSON payload when creating a new URL.
 // It contains a single field, URL, which is the original URL to be shortened.
 type CreateURLPayload struct {
-	URL string `json:"url"`
+	URL string `json:"url" binding:"required,url"`
 }
 
 // UpdateURLPayload defines the structure for the JSON payload when updating an existing URL.
 // Fixed a bug potential leading to Exploit CWE-284 / IDOR in the json payloads, Now It's safe A long With ID.
 type UpdateURLPayload struct {
-	ID     string `json:"id"`
-	OldURL string `json:"old_url"`
-	NewURL string `json:"new_url"`
+	ID     string `json:"id" binding:"required"`
+	OldURL string `json:"old_url" binding:"required"`
+	NewURL string `json:"new_url" binding:"required,url"`
 }
 
 // DeleteURLPayload defines the structure for the JSON payload when deleting a URL.
 type DeleteURLPayload struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	ID  string `json:"id" binding:"required"`
+	URL string `json:"url" binding:"required,url"`
 }
 
 func init() {
@@ -203,7 +203,8 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pathID, req, err := validateUpdateRequest(c)
 		if err != nil {
-			handleError(c, err.Error(), http.StatusBadRequest, err)
+			// Handle the error, including the case where the JSON fields don't match
+			handleError(c, logmonitor.HeaderResponseInvalidRequestPayload, http.StatusBadRequest, err)
 			return
 		}
 
@@ -220,21 +221,31 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // validateUpdateRequest validates the update request and extracts the path ID and request payload.
 func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload, err error) {
 	pathID = c.Param(logmonitor.HeaderID)
-	logFields := logmonitor.CreateLogFields("validateUpdateRequest",
-		logmonitor.WithComponent(logmonitor.ComponentGopher),
-		logmonitor.WithID(pathID),
-		logmonitor.WithError(err),
-	)
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logFields := logmonitor.CreateLogFields("validateUpdateRequest",
+			logmonitor.WithComponent(logmonitor.ComponentGopher),
+			logmonitor.WithID(pathID),
+			logmonitor.WithError(err),
+		)
 		// Return a BadRequestError if JSON binding fails
 		// Friendly error message for the user, and the original error for logging purposes
+		// Log the error with structured logging
 		logmonitor.Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.HeaderResponseInvalidRequestPayload, logFields...)
-		return "", req, logmonitor.NewBadRequestError(logmonitor.HeaderResponseInvalidRequestPayload, err)
+
+		// Return a BadRequestError with the actual error
+		return "", req, err
 	}
 
+	// Additional validation for the ID in the URL and the ID in the payload
 	if pathID != req.ID {
-		logmonitor.Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog, logFields...)
-		return "", req, fmt.Errorf(logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog)
+		err := fmt.Errorf(logmonitor.PathIDandPayloadIDDoesnotMatchContextLog)
+		logFields := logmonitor.CreateLogFields("validateUpdateRequest",
+			logmonitor.WithComponent(logmonitor.ComponentGopher),
+			logmonitor.WithID(pathID),
+			logmonitor.WithError(err),
+		)
+		logmonitor.Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.HeaderResponseInvalidRequestPayload, logFields...)
+		return "", req, err
 	}
 
 	return pathID, req, nil
