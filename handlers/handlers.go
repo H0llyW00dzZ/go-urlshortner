@@ -222,7 +222,9 @@ func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload,
 	pathID = c.Param(logmonitor.HeaderID)
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		return "", req, err
+		// Return a BadRequestError if JSON binding fails
+		// Friendly error message for the user, and the original error for logging purposes
+		return "", req, logmonitor.NewBadRequestError(logmonitor.HeaderResponseInvalidRequestPayload, err)
 	}
 
 	if pathID != req.ID {
@@ -534,11 +536,21 @@ func constructFullShortenedURL(c *gin.Context, id string) string {
 func handleError(c *gin.Context, message string, statusCode int, err error) {
 	var emoji string
 
+	// Check if the error is a BadRequestError and unwrap it if it is
+	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
+		message = badRequestErr.UserMessage
+		statusCode = http.StatusBadRequest
+		err = badRequestErr.Err
+	}
+
 	// Use different emojis based on the status code
 	switch {
 	case statusCode >= 500: // 5xx errors are still logged as errors
 		emoji = logmonitor.ErrorEmoji
 		Logger.Error(emoji+"  "+message, zap.Error(err))
+	case statusCode >= 400: // 4xx errors are logged as info
+		emoji = logmonitor.AlertEmoji + "  " + logmonitor.ErrorEmoji
+		Logger.Info(emoji+"  "+message, zap.Error(err))
 	}
 
 	c.AbortWithStatusJSON(statusCode, gin.H{
