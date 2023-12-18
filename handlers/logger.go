@@ -118,7 +118,7 @@ func LogDeletionError(id string, err error) {
 // LogURLDeletionSuccess logs a message indicating that a URL has been successfully deleted.
 func LogURLDeletionSuccess(id string) {
 	logFields := createLogFields("delete_url", id)
-	Logger.Info(constant.UrlshortenerEmoji+" "+constant.SuccessEmoji+"  "+constant.URLDeletedSuccessfullyContextLog, logFields...)
+	Logger.Info(constant.UrlshortenerEmoji+"  "+constant.SuccessEmoji+"  "+constant.URLDeletedSuccessfullyContextLog, logFields...)
 }
 
 // Use the centralized logging function from logmonitor package
@@ -133,7 +133,7 @@ func createDeletionLogFields(id string, err error) []zap.Field {
 // logNotFound handles logging and response for a "not found" situation.
 func logNotFound(c *gin.Context, id string) {
 	fields := createLogFields("deleteURL", id)
-	logInfoWithEmoji(constant.AlertEmoji+" "+constant.WarningEmoji, constant.NoURLIDContextLog, fields...)
+	logInfoWithEmoji(constant.AlertEmoji+"  "+constant.WarningEmoji, constant.NoURLIDContextLog, fields...)
 	c.JSON(http.StatusNotFound, gin.H{
 		constant.HeaderResponseError: constant.HeaderResponseIDandURLNotFound,
 	})
@@ -147,9 +147,25 @@ func isMismatchError(err error) bool {
 // logMismatchError handles logging and response for a "mismatch error" situation.
 func logMismatchError(c *gin.Context, id string) {
 	fields := createLogFields("deleteURL", id)
-	logInfoWithEmoji(constant.ErrorEmoji+" "+constant.WarningEmoji, constant.URLmismatchContextLog, fields...)
+	logInfoWithEmoji(constant.ErrorEmoji+"  "+constant.WarningEmoji, constant.URLmismatchContextLog, fields...)
 	c.JSON(http.StatusBadRequest, gin.H{
 		constant.HeaderResponseError: constant.PathIDandPayloadIDDoesnotMatchContextLog,
+	})
+}
+
+// logURLMismatchError logs the URL mismatch error with appropriate emojis and sends a
+// 400 Bad Request response with the URL mismatch error message.
+func logURLMismatchError(c *gin.Context, id string, err error) {
+	// Create log fields to include additional metadata in the log entry.
+	fields := createLogFields("url_mismatch_error", id)
+
+	// Log the error with an information level log entry, including emojis for visibility.
+	logInfoWithEmoji(constant.ErrorEmoji+"  "+constant.WarningEmoji, constant.URLmismatchContextLog, fields...)
+
+	// Respond to the client with a 400 Bad Request status code and include the error message.
+	// This indicates that the server cannot process the request due to a client error (mismatched URL).
+	c.JSON(http.StatusBadRequest, gin.H{
+		constant.HeaderResponseError: constant.URLmismatchContextLog,
 	})
 }
 
@@ -161,7 +177,7 @@ func isBadRequestError(err error) bool {
 // logBadRequest handles logging and response for a "bad request" situation.
 func logBadRequest(c *gin.Context, id string) {
 	fields := createLogFields("deleteURL", id)
-	logInfoWithEmoji(constant.ErrorEmoji+" "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestPayload, fields...)
+	logInfoWithEmoji(constant.ErrorEmoji+"  "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestPayload, fields...)
 	c.JSON(http.StatusBadRequest, gin.H{
 		constant.HeaderResponseError: constant.HeaderResponseInvalidRequestPayload,
 	})
@@ -171,13 +187,13 @@ func logBadRequest(c *gin.Context, id string) {
 func logDefaultError(c *gin.Context, id string, err error) {
 	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
 		fields := createLogFields("deleteURL", id)
-		logInfoWithEmoji(constant.AlertEmoji+" "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestJSONBinding, fields...)
+		logInfoWithEmoji(constant.AlertEmoji+"  "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestJSONBinding, fields...)
 		c.JSON(http.StatusBadRequest, gin.H{
 			constant.HeaderResponseError: badRequestErr.UserMessage,
 		})
 	} else {
 		fields := createLogFieldsWithErr("deleteURL", id, err)
-		logErrorWithEmoji(constant.SosEmoji+" "+constant.WarningEmoji, constant.FailedToDeletedURLContextLog, fields...)
+		logErrorWithEmoji(constant.SosEmoji+"  "+constant.WarningEmoji, constant.FailedToDeletedURLContextLog, fields...)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
 		})
