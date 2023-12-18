@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
 	"github.com/gin-gonic/gin"
 )
 
@@ -109,16 +110,16 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 		duration := time.Since(start)
 
 		// Choose the emoji based on the HTTP status code.
-		statusEmoji := InfoEmoji
+		statusEmoji := constant.InfoEmoji
 		if c.Writer.Status() >= 400 && c.Writer.Status() < 500 {
-			statusEmoji = WarningEmoji
+			statusEmoji = constant.WarningEmoji
 		} else if c.Writer.Status() >= 500 {
-			statusEmoji = ErrorEmoji
+			statusEmoji = constant.ErrorEmoji
 		}
 
 		// Log details of the request with zap, including the emoji.
 		// Here we add the K8sEmoji to the log message.
-		logger.Info(K8sEmoji+"  "+statusEmoji+"  Request Details",
+		logger.Info(constant.K8sEmoji+"  "+statusEmoji+"  Request Details",
 			zap.String("hostmachine_start_time", startTimeFormatted),
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),

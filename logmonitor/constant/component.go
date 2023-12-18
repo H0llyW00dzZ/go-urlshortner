@@ -1,4 +1,4 @@
-package logmonitor
+package constant
 
 // Component constants for structured logging.
 // This is used to identify the component that is logging the message.
