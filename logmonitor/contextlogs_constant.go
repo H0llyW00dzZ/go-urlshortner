@@ -33,4 +33,7 @@ const (
 	InvalidNewURLFormatContextLog               = "Invalid new URL format"
 	MisMatchBetweenPathIDandPayloadIDContextLog = "Mismatch between path ID and payload ID"
 	PathIDandPayloadIDDoesnotMatchContextLog    = "Path ID and payload ID does not match"
+	InfoAttemptingToRetrieveTheCurrentURL       = "Attempting to retrieve the current URL for update"
+	InfoFailedToRetrieveTheCurrentURL           = "Failed to retrieve the current URL for update"
+	InfoOldURLDoesMatchTheCurrentURL            = "Old URL does match the current URL"
 )

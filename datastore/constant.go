@@ -19,4 +19,5 @@ const (
 	// URL Info Messages
 	InfoAttemptingToUpdateURLInDatastore = "Attempting to update URL in Datastore"
 	InfoFailedToUpdateURLInDatastore     = "Failed to update URL in Datastore"
+	InfoUpdateSuccessful                 = "URL updated successfully in the datastore"
 )
