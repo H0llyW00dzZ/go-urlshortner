@@ -220,14 +220,20 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // validateUpdateRequest validates the update request and extracts the path ID and request payload.
 func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload, err error) {
 	pathID = c.Param(logmonitor.HeaderID)
-
+	logFields := logmonitor.CreateLogFields("validateUpdateRequest",
+		logmonitor.WithComponent(logmonitor.ComponentGopher),
+		logmonitor.WithID(pathID),
+		logmonitor.WithError(err),
+	)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// Return a BadRequestError if JSON binding fails
 		// Friendly error message for the user, and the original error for logging purposes
+		logmonitor.Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.HeaderResponseInvalidRequestPayload, logFields...)
 		return "", req, logmonitor.NewBadRequestError(logmonitor.HeaderResponseInvalidRequestPayload, err)
 	}
 
 	if pathID != req.ID {
+		logmonitor.Logger.Info(logmonitor.ErrorEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog, logFields...)
 		return "", req, fmt.Errorf(logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog)
 	}
 
@@ -548,9 +554,6 @@ func handleError(c *gin.Context, message string, statusCode int, err error) {
 	case statusCode >= 500: // 5xx errors are still logged as errors
 		emoji = logmonitor.ErrorEmoji
 		Logger.Error(emoji+"  "+message, zap.Error(err))
-	case statusCode >= 400: // 4xx errors are logged as info
-		emoji = logmonitor.AlertEmoji + "  " + logmonitor.ErrorEmoji
-		Logger.Info(emoji+"  "+message, zap.Error(err))
 	}
 
 	c.AbortWithStatusJSON(statusCode, gin.H{
