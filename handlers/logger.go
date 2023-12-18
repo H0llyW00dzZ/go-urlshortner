@@ -30,10 +30,10 @@ func logAttemptToRetrieve(id string) {
 	Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.InfoAttemptingToRetrieveTheCurrentURL, logFields...)
 }
 
-// logMismatchError logs an informational message indicating a mismatch error during URL update process.
-func logMismatchError(id string) {
-	logFields := createLogFields("mismatch_error", id) // Provide a default operation name
-	Logger.Info(constant.GetBackEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.ErrorEmoji+"  "+constant.URLmismatchContextLog, logFields...)
+// LogMismatchError logs a message indicating that there is a mismatch error.
+func LogMismatchError(id string) {
+	logFields := createLogFields("mismatch_error", id)
+	Logger.Info(constant.ErrorEmoji+" "+constant.UrlshortenerEmoji+" "+constant.HeaderResponseInvalidRequestPayload, logFields...)
 }
 
 // logAttemptToUpdate logs an informational message indicating an attempt to update a URL in the datastore.
@@ -74,6 +74,37 @@ func LogInternalError(context string, id string, err error) {
 func LogURLRetrievalSuccess(id string) {
 	logFields := createLogFields("getURL", id) // Now correctly using two arguments
 	Logger.Info(constant.UrlshortenerEmoji+"  "+constant.RedirectEmoji+"  "+constant.SuccessEmoji+"  "+constant.URLRetriveContextLog, logFields...)
+}
+
+// LogInvalidURLFormat logs a message indicating that the URL format is invalid.
+func LogInvalidURLFormat(url string) {
+	Logger.Info(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidURLFormat,
+		zap.String("url", url),
+	)
+}
+
+// LogBadRequestError logs a message indicating a bad request error.
+func LogBadRequestError(context string, err error) {
+	logFields := createLogFieldsWithErr(context, "", err) // Assuming an empty ID for general bad requests
+	Logger.Info(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidRequestPayload, logFields...)
+}
+
+// LogURLShortened logs a message indicating that a URL has been successfully shortened.
+func LogURLShortened(id string) {
+	logFields := createLogFields("shorten_url", id)
+	Logger.Info(constant.UrlshortenerEmoji+"  "+constant.SuccessEmoji+"  "+constant.URLShorteneredContextLog, logFields...)
+}
+
+// LogDeletionError logs a message indicating that there was an error during deletion.
+func LogDeletionError(id string, err error) {
+	logFields := createLogFieldsWithErr("delete_url", id, err)
+	LogInfo(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.ErrorDuringDeletionContextLog, logFields...)
+}
+
+// LogURLDeletionSuccess logs a message indicating that a URL has been successfully deleted.
+func LogURLDeletionSuccess(id string) {
+	logFields := createLogFields("delete_url", id)
+	Logger.Info(constant.UrlshortenerEmoji+" "+constant.SuccessEmoji+"  "+constant.URLDeletedSuccessfullyContextLog, logFields...)
 }
 
 // createLogFieldsWithErr is a helper to create log fields including an error.
