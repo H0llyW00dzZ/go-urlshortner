@@ -7,6 +7,23 @@ import (
 	"go.uber.org/zap"
 )
 
+// Logger is a package-level variable to access the zap logger throughout the handlers package.
+// It is intended to be used by other functions within the package for logging purposes.
+var Logger *zap.Logger
+
+// basePath is a package-level variable to store the base path for the handlers.
+// It is set once during package initialization.
+var basePath string
+
+// internalSecretValue is a package-level variable that stores the secret value required by the InternalOnly middleware.
+// It is set once during package initialization.
+var internalSecretValue string
+
+// SetLogger sets the logger instance for the package.
+func SetLogger(logger *zap.Logger) {
+	Logger = logger
+}
+
 // logAttemptToRetrieve logs an informational message indicating an attempt to retrieve the current URL by ID.
 func logAttemptToRetrieve(id string) {
 	logFields := createLogFields(id)

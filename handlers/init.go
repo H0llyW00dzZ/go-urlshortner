@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"strings"
 
@@ -10,45 +9,7 @@ import (
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
 	"github.com/H0llyW00dzZ/go-urlshortner/shortid"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
-
-// Logger is a package-level variable to access the zap logger throughout the handlers package.
-// It is intended to be used by other functions within the package for logging purposes.
-var Logger *zap.Logger
-
-// basePath is a package-level variable to store the base path for the handlers.
-// It is set once during package initialization.
-var basePath string
-
-// internalSecretValue is a package-level variable that stores the secret value required by the InternalOnly middleware.
-// It is set once during package initialization.
-var internalSecretValue string
-
-// SetLogger sets the logger instance for the package.
-func SetLogger(logger *zap.Logger) {
-	Logger = logger
-}
-
-// CreateURLPayload defines the structure for the JSON payload when creating a new URL.
-// It contains a single field, URL, which is the original URL to be shortened.
-type CreateURLPayload struct {
-	URL string `json:"url" binding:"required,url"`
-}
-
-// UpdateURLPayload defines the structure for the JSON payload when updating an existing URL.
-// Fixed a bug potential leading to Exploit CWE-284 / IDOR in the json payloads, Now It's safe A long With ID.
-type UpdateURLPayload struct {
-	ID     string `json:"id" binding:"required"`
-	OldURL string `json:"old_url" binding:"required,url"`
-	NewURL string `json:"new_url" binding:"required,url"`
-}
-
-// DeleteURLPayload defines the structure for the JSON payload when deleting a URL.
-type DeleteURLPayload struct {
-	ID  string `json:"id" binding:"required"`
-	URL string `json:"url" binding:"required,url"`
-}
 
 func init() {
 
@@ -67,26 +28,6 @@ func init() {
 	internalSecretValue = os.Getenv("INTERNAL_SECRET_VALUE")
 	if internalSecretValue == "" {
 		panic(constant.InternelSecretEnvContextLog)
-	}
-}
-
-// InternalOnly creates a middleware that restricts access to a route to internal services only.
-// It checks for a specific header containing a secret value that should match an environment
-// variable to allow the request to proceed. If the secret does not match or is not provided,
-// the request is aborted with a 403 Forbidden status.
-func InternalOnly() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Check the request header against the expected secret value.
-		if c.GetHeader(constant.HeaderXinternalSecret) != internalSecretValue {
-			// If the header does not match the expected secret, abort the request.
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				constant.HeaderResponseError: constant.HeaderResponseForbidden,
-			})
-			return
-		}
-
-		// If the header matches, proceed with the request.
-		c.Next()
 	}
 }
 
