@@ -1,13 +1,47 @@
 package shortid
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
+	"fmt"
+
+	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 )
 
 // Generate creates a cryptographically secure, URL-friendly short ID of a specified length.
 func Generate(length int) (string, error) {
-	// Calculate the buffer size needed to ensure the base64 encoded string meets the requested length.
+	return generateRandomString(length)
+}
+
+// GenerateUnique creates a unique, cryptographically secure, URL-friendly short ID.
+func GenerateUnique(ctx context.Context, client *datastore.Client, length int) (string, error) {
+	const maxRetries = 10 // Maximum number of retries to find a unique ID
+	for i := 0; i < maxRetries; i++ {
+		id, err := generateRandomString(length)
+		if err != nil {
+			return "", fmt.Errorf("error generating random string: %w", err)
+		}
+
+		// Check if the ID already exists in the datastore.
+		_, err = datastore.GetURL(ctx, client, id)
+		if err != nil {
+			if errors.Is(err, datastore.ErrNotFound) {
+				// The ID does not exist, so it is unique
+				return id, nil
+			}
+			// Some other error occurred when checking the ID
+			return "", fmt.Errorf("error checking ID uniqueness: %w", err)
+		}
+		// The ID exists, so it is not unique, try generating another one
+	}
+
+	return "", errors.New("failed to generate a unique short ID after several attempts")
+}
+
+// generateRandomString generates a random, URL-friendly string of a specified length.
+func generateRandomString(length int) (string, error) {
 	bufferSize := length * 3 / 4
 	if length%3 != 0 {
 		bufferSize++ // Compensate for partial encoding groups
