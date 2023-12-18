@@ -240,18 +240,24 @@ func handleUpdateError(c *gin.Context, id string, err error) {
 		logmonitor.WithError(err),
 	)
 
-	if strings.Contains(err.Error(), logmonitor.URLmismatchContextLog) {
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
-		c.JSON(http.StatusBadRequest, gin.H{
-			logmonitor.HeaderResponseError: err.Error(),
+	switch {
+	case err == datastore.ErrNotFound:
+		logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.URLnotfoundContextLog, logFields...)
+		c.JSON(http.StatusNotFound, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.URLnotfoundContextLog,
 		})
-		return
+	case strings.Contains(err.Error(), logmonitor.URLmismatchContextLog):
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.URLmismatchContextLog,
+		})
+	default:
+		// For other types of errors, respond with a 500 Internal Server Error.
+		logmonitor.Logger.Error(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
+		})
 	}
-
-	logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
-	c.JSON(http.StatusInternalServerError, gin.H{
-		logmonitor.HeaderResponseError: err.Error(),
-	})
 }
 
 // bindUpdatePayload binds the JSON payload to the UpdateURLPayload struct and validates the new URL format.
@@ -287,8 +293,7 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 
 	// Update the URL in the datastore with the new URL.
 	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-		handleUpdateError(c, id, err) // handle the error, but don't expect a return value
-		return fmt.Errorf(logmonitor.FailedToUpdateURLContextLog+" %v", err)
+		return err // Simply return the error
 	}
 
 	logSuccessfulUpdate(id)
@@ -307,17 +312,16 @@ func logAttemptToRetrieve(id string) {
 func handleRetrievalError(err error, id string) error {
 	logFields := createLogFields(id)
 	if err == datastore.ErrNotFound {
-		logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.URLnotfoundContextLog, logFields...)
-		return fmt.Errorf(logmonitor.URLnotfoundContextLog)
+		return datastore.ErrNotFound // Return the original error directly
 	}
 	logmonitor.Logger.Error(logmonitor.FailedToRetriveURLContextLog+": "+err.Error(), logFields...)
-	return fmt.Errorf(logmonitor.FailedToRetriveURLContextLog+": %v", err)
+	return err // Return the original error directly
 }
 
 // logMismatchError logs an informational message indicating a mismatch error during URL update process.
 func logMismatchError(id string) {
 	logFields := createLogFields(id)
-	logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+	logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
 }
 
 // logAttemptToUpdate logs an informational message indicating an attempt to update a URL in the datastore.
