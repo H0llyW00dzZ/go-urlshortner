@@ -6,6 +6,7 @@ import (
 
 	cloudDatastore "cloud.google.com/go/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
+	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
 	"go.uber.org/zap"
 )
 
@@ -60,12 +61,12 @@ func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error)
 	if err != nil {
 		// Create structured log fields using logmonitor
 		logFields := logmonitor.CreateLogFields("CreateDatastoreClient",
-			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithError(err),                           // Include the error here, but it will be nil if there's no error
+			logmonitor.WithComponent(constant.ComponentNoSQL), // Use the constant for the component
+			logmonitor.WithError(err),                         // Include the error here, but it will be nil if there's no error
 		)
 		// Log the error with structured fields
 		// Note: This logger is specifically configured for CreateDatastoreClient and is synchronized with Google Cloud Datastore's and any Google Cloud Service (e.g, Google Cloud Auth) error handling in the binary world.
-		config.Logger.Error(logmonitor.AlertEmoji+" "+DataStoreFailedtoCreateClient, logFields...)
+		config.Logger.Error(constant.AlertEmoji+" "+DataStoreFailedtoCreateClient, logFields...)
 		return nil, err
 	}
 	return &Client{cloudClient}, nil
@@ -80,7 +81,7 @@ func SaveURL(ctx context.Context, client *Client, url *URL) error {
 	_, err := client.Put(ctx, key, url)
 	if err != nil {
 		// Use zap logger to log the error for consistent logging.
-		logmonitor.Logger.Error(logmonitor.AlertEmoji+" "+DataStoreFailedtoCreateClient, zap.Error(err))
+		logmonitor.Logger.Error(constant.AlertEmoji+" "+DataStoreFailedtoCreateClient, zap.Error(err))
 		return err
 	}
 	return nil
@@ -125,7 +126,7 @@ func UpdateURL(ctx context.Context, client *Client, id string, newURL string) er
 	})
 
 	if err != nil {
-		logmonitor.Logger.Error(logmonitor.AlertEmoji+" "+DataStoreFailedtoUpdateURL, zap.String("id", id), zap.Error(err))
+		logmonitor.Logger.Error(constant.AlertEmoji+" "+DataStoreFailedtoUpdateURL, zap.String("id", id), zap.Error(err))
 		return err
 	}
 
@@ -143,7 +144,7 @@ func DeleteURL(ctx context.Context, client *Client, id string) error {
 			return ErrNotFound
 		}
 		// Log and handle other possible errors.
-		logmonitor.Logger.Error(logmonitor.AlertEmoji+" "+DataStoreFailedtoUpdateURL, zap.String("id", id), zap.Error(err))
+		logmonitor.Logger.Error(constant.AlertEmoji+" "+DataStoreFailedtoUpdateURL, zap.String("id", id), zap.Error(err))
 		return err
 	}
 	return nil
@@ -158,7 +159,7 @@ func CloseClient(client *Client) error {
 	}
 	err := client.Close()
 	if err != nil {
-		logmonitor.Logger.Error(logmonitor.AlertEmoji+" "+DataStoreFailedToCloseClient, zap.Error(err))
+		logmonitor.Logger.Error(constant.AlertEmoji+" "+DataStoreFailedToCloseClient, zap.Error(err))
 		return err
 	}
 	return nil
