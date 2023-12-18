@@ -41,7 +41,7 @@ type CreateURLPayload struct {
 // Fixed a bug potential leading to Exploit CWE-284 / IDOR in the json payloads, Now It's safe A long With ID.
 type UpdateURLPayload struct {
 	ID     string `json:"id" binding:"required"`
-	OldURL string `json:"old_url" binding:"required"`
+	OldURL string `json:"old_url" binding:"required,url"`
 	NewURL string `json:"new_url" binding:"required,url"`
 }
 
