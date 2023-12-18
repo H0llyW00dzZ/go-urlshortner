@@ -12,6 +12,9 @@ import (
 
 // Generate creates a cryptographically secure, URL-friendly short ID of a specified length.
 func Generate(length int) (string, error) {
+	if length <= 0 {
+		return "", fmt.Errorf("length must be a positive integer, got %d", length)
+	}
 	return generateRandomString(length)
 }
 
