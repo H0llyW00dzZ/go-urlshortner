@@ -324,18 +324,25 @@ func handleDeletionError(c *gin.Context, err error) {
 		logmonitor.WithID(id),
 		logmonitor.WithError(err),
 	)
-
-	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToValidateURLContextLog, logFields...)
-		c.JSON(http.StatusBadRequest, gin.H{
-			logmonitor.HeaderResponseError: badRequestErr.UserMessage,
-		})
-	} else if err == datastore.ErrNotFound {
+	// Fix internal issue now it's stable
+	switch {
+	case err == datastore.ErrNotFound:
 		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.NoURLIDContextLog, logFields...)
 		c.JSON(http.StatusNotFound, gin.H{
 			logmonitor.HeaderResponseError: logmonitor.HeaderResponseIDandURLNotFound,
 		})
-	} else {
+	case strings.Contains(err.Error(), logmonitor.URLmismatchContextLog):
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.URLmismatchContextLog,
+		})
+	case err.(*logmonitor.BadRequestError) != nil:
+		badRequestErr := err.(*logmonitor.BadRequestError)
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToValidateURLContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: badRequestErr.UserMessage,
+		})
+	default:
 		logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToDeletedURLContextLog, logFields...)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
@@ -362,7 +369,9 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 
 	// Validate the URL format.
 	if !isValidURL(req.URL) {
-		return logmonitor.NewBadRequestError(logmonitor.HeaderResponseInvalidURLFormat, fmt.Errorf(logmonitor.HeaderResponseInvalidURLFormat))
+		return logmonitor.NewBadRequestError(
+			logmonitor.HeaderResponseInvalidURLFormat,
+			fmt.Errorf(logmonitor.HeaderResponseInvalidURLFormat))
 	}
 
 	// Perform the delete operation.
