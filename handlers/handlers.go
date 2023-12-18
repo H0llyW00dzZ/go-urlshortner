@@ -271,22 +271,73 @@ func bindUpdatePayload(c *gin.Context) (UpdateURLPayload, error) {
 // updateURL retrieves the current URL, verifies it against the provided old URL, and updates it with the new URL.
 // It returns an error with a message suitable for HTTP response if any step fails.
 func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req UpdateURLPayload) error {
-	// Retrieve the current URL to ensure it matches the provided old URL.
+	logAttemptToRetrieve(id)
+
 	currentURL, err := datastore.GetURL(c, dsClient, id)
 	if err != nil {
-		return fmt.Errorf(logmonitor.FailedToRetriveURLContextLog)
+		return handleRetrievalError(err, id)
 	}
+
 	if currentURL.Original != req.OldURL {
-		// Instead of panicking, return an error that indicates a URL mismatch.
+		logMismatchError(id)
 		return fmt.Errorf(logmonitor.URLmismatchContextLog)
 	}
 
+	logAttemptToUpdate(id)
+
 	// Update the URL in the datastore with the new URL.
 	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-		return fmt.Errorf(logmonitor.FailedToUpdateURLContextLog)
+		handleUpdateError(c, id, err) // handle the error, but don't expect a return value
+		return fmt.Errorf(logmonitor.FailedToUpdateURLContextLog+" %v", err)
 	}
 
+	logSuccessfulUpdate(id)
+
 	return nil
+}
+
+// logAttemptToRetrieve logs an informational message indicating an attempt to retrieve the current URL by ID.
+func logAttemptToRetrieve(id string) {
+	logFields := createLogFields(id)
+	logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.InfoAttemptingToRetrieveTheCurrentURL, logFields...)
+}
+
+// handleRetrievalError logs an error message for a failed retrieval attempt and returns a formatted error.
+// If the error is a 'not found' error, it logs a specific message for that case.
+func handleRetrievalError(err error, id string) error {
+	logFields := createLogFields(id)
+	if err == datastore.ErrNotFound {
+		logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.URLnotfoundContextLog, logFields...)
+		return fmt.Errorf(logmonitor.URLnotfoundContextLog)
+	}
+	logmonitor.Logger.Error(logmonitor.FailedToRetriveURLContextLog+": "+err.Error(), logFields...)
+	return fmt.Errorf(logmonitor.FailedToRetriveURLContextLog+": %v", err)
+}
+
+// logMismatchError logs an informational message indicating a mismatch error during URL update process.
+func logMismatchError(id string) {
+	logFields := createLogFields(id)
+	logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+}
+
+// logAttemptToUpdate logs an informational message indicating an attempt to update a URL in the datastore.
+func logAttemptToUpdate(id string) {
+	logFields := createLogFields(id)
+	logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+datastore.InfoAttemptingToUpdateURLInDatastore, logFields...)
+}
+
+// logSuccessfulUpdate logs an informational message indicating a successful update of a URL in the datastore.
+func logSuccessfulUpdate(id string) {
+	logFields := createLogFields(id)
+	logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.SuccessEmoji+"  "+datastore.InfoUpdateSuccessful, logFields...)
+}
+
+// createLogFields generates a slice of zap.Field containing common log fields for the updateURL operation.
+func createLogFields(id string) []zap.Field {
+	return logmonitor.CreateLogFields("updateURL",
+		logmonitor.WithComponent(logmonitor.ComponentNoSQL),
+		logmonitor.WithID(id),
+	)
 }
 
 // respondWithUpdatedURL constructs and sends a JSON response with the updated URL information.
