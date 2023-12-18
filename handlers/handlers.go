@@ -38,7 +38,9 @@ type CreateURLPayload struct {
 }
 
 // UpdateURLPayload defines the structure for the JSON payload when updating an existing URL.
+// Fixed a bug potential leading to Exploit CWE-284 / IDOR in the json payloads, Now It's safe A long With ID.
 type UpdateURLPayload struct {
+	ID     string `json:"id"`
 	OldURL string `json:"old_url"`
 	NewURL string `json:"new_url"`
 }
@@ -199,39 +201,57 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // editURLHandlerGin returns a Gin handler function that handles the updating of an existing shortened URL.
 func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get the ID from the URL path parameter.
-		id := c.Param(logmonitor.HeaderID)
-
-		// Bind the JSON payload to the UpdateURLPayload struct.
-		req, err := bindUpdatePayload(c)
+		pathID, req, err := validateUpdateRequest(c)
 		if err != nil {
-			handleError(c, logmonitor.HeaderResponseInvalidRequest, http.StatusBadRequest, err)
+			handleError(c, err.Error(), http.StatusBadRequest, err)
 			return
 		}
 
-		logFields := logmonitor.CreateLogFields("editURL",
-			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithID(id),
-			logmonitor.WithError(err), // Include the error here, but it will be nil if there's no error
-		)
-
-		// Perform the update operation.
-		err = updateURL(c, dsClient, id, req)
+		err = updateURL(c, dsClient, pathID, req)
 		if err != nil {
-			if strings.Contains(err.Error(), logmonitor.URLmismatchContextLog) {
-				handleError(c, err.Error(), http.StatusBadRequest, err)
-				logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
-			} else {
-				handleError(c, err.Error(), http.StatusInternalServerError, err)
-				logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
-			}
+			handleUpdateError(c, pathID, err)
 			return
 		}
 
-		// Respond with the updated URL information.
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLupdateContextLog, logFields...)
-		respondWithUpdatedURL(c, id)
+		respondWithUpdatedURL(c, pathID)
 	}
+}
+
+// validateUpdateRequest validates the update request and extracts the path ID and request payload.
+func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload, err error) {
+	pathID = c.Param(logmonitor.HeaderID)
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return "", req, err
+	}
+
+	if pathID != req.ID {
+		return "", req, fmt.Errorf(logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog)
+	}
+
+	return pathID, req, nil
+}
+
+// handleUpdateError handles errors that occur during the URL update process.
+func handleUpdateError(c *gin.Context, id string, err error) {
+	logFields := logmonitor.CreateLogFields("editURL",
+		logmonitor.WithComponent(logmonitor.ComponentNoSQL),
+		logmonitor.WithID(id),
+		logmonitor.WithError(err),
+	)
+
+	if strings.Contains(err.Error(), logmonitor.URLmismatchContextLog) {
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.UpdateEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: err.Error(),
+		})
+		return
+	}
+
+	logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		logmonitor.HeaderResponseError: err.Error(),
+	})
 }
 
 // bindUpdatePayload binds the JSON payload to the UpdateURLPayload struct and validates the new URL format.
@@ -324,18 +344,25 @@ func handleDeletionError(c *gin.Context, err error) {
 		logmonitor.WithID(id),
 		logmonitor.WithError(err),
 	)
-
-	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToValidateURLContextLog, logFields...)
-		c.JSON(http.StatusBadRequest, gin.H{
-			logmonitor.HeaderResponseError: badRequestErr.UserMessage,
-		})
-	} else if err == datastore.ErrNotFound {
+	// Fix internal issue now it's stable
+	switch {
+	case err == datastore.ErrNotFound:
 		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.NoURLIDContextLog, logFields...)
 		c.JSON(http.StatusNotFound, gin.H{
 			logmonitor.HeaderResponseError: logmonitor.HeaderResponseIDandURLNotFound,
 		})
-	} else {
+	case strings.Contains(err.Error(), logmonitor.URLmismatchContextLog):
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.URLmismatchContextLog,
+		})
+	case err.(*logmonitor.BadRequestError) != nil:
+		badRequestErr := err.(*logmonitor.BadRequestError)
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToValidateURLContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: badRequestErr.UserMessage,
+		})
+	default:
 		logmonitor.Logger.Error(logmonitor.SosEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToDeletedURLContextLog, logFields...)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
@@ -362,7 +389,9 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 
 	// Validate the URL format.
 	if !isValidURL(req.URL) {
-		return logmonitor.NewBadRequestError(logmonitor.HeaderResponseInvalidURLFormat, fmt.Errorf(logmonitor.HeaderResponseInvalidURLFormat))
+		return logmonitor.NewBadRequestError(
+			logmonitor.HeaderResponseInvalidURLFormat,
+			fmt.Errorf(logmonitor.HeaderResponseInvalidURLFormat))
 	}
 
 	// Perform the delete operation.
