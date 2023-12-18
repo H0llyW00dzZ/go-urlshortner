@@ -1,4 +1,4 @@
-package logmonitor
+package constant
 
 // Define emojis for different log levels.
 const (

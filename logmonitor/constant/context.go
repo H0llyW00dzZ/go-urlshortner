@@ -1,6 +1,5 @@
-package logmonitor
+package constant
 
-// Define context logs for different components.
 const (
 	URLmismatchContextLog                       = "URL mismatch"
 	URLShorteneredContextLog                    = "URL shortened and saved"

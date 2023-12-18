@@ -1,4 +1,4 @@
-package logmonitor
+package constant
 
 // Define header response for different components.
 const (
