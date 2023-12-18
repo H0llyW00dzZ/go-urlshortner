@@ -12,6 +12,27 @@ import (
 	"go.uber.org/zap"
 )
 
+// URLMismatchError represents an error for when the provided URL does not match
+// the expected URL in the datastore. It embeds the error message to be returned.
+type URLMismatchError struct {
+	Message string
+}
+
+// Error returns the error message of a URLMismatchError.
+// This method makes URLMismatchError satisfy the error interface.
+func (e *URLMismatchError) Error() string {
+	return e.Message
+}
+
+// isURLMismatchError checks if the provided error is of type URLMismatchError.
+// It returns true if the error is a URLMismatchError, false otherwise.
+// This is useful for type assertions where you need to identify if an error
+// is specifically due to a URL mismatch.
+func isURLMismatchError(err error) bool {
+	_, ok := err.(*URLMismatchError) // Type assertion to check for URLMismatchError.
+	return ok
+}
+
 // handleUpdateError handles errors that occur during the URL update process.
 func handleUpdateError(c *gin.Context, id string, err error) {
 	logFields := logmonitor.CreateLogFields("editURL",
@@ -41,6 +62,8 @@ func handleUpdateError(c *gin.Context, id string, err error) {
 }
 
 // handleDeletionError handles errors that occur during the URL deletion process.
+// Note this function `handleDeletionError` has maximum of 5 cyclomatic complexity so can't add another case here,
+// because I don't have idea anymore for this function to reduce the cyclomatic complexity :v
 func handleDeletionError(c *gin.Context, err error) {
 	id := c.Param(constant.HeaderID)
 	switch {
@@ -54,6 +77,8 @@ func handleDeletionError(c *gin.Context, err error) {
 		// Return a BadRequestError if JSON binding fails
 		// Friendly error message for the user, and the original error for logging purposes
 		logBadRequest(c, id) // Pass the context and id instead of err.Error()
+	case isURLMismatchError(err): // This checks for the specific URL mismatch error
+		logURLMismatchError(c, id, err)
 	default:
 		logDefaultError(c, id, err) // Pass the context, id, and error
 	}
