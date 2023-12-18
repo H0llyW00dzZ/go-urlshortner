@@ -240,20 +240,24 @@ func handleUpdateError(c *gin.Context, id string, err error) {
 		logmonitor.WithError(err),
 	)
 
-	// Direct comparison with datastore.ErrNotFound
-	if err == datastore.ErrNotFound {
+	switch {
+	case err == datastore.ErrNotFound:
 		logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.URLnotfoundContextLog, logFields...)
 		c.JSON(http.StatusNotFound, gin.H{
 			logmonitor.HeaderResponseError: logmonitor.URLnotfoundContextLog,
 		})
-		return
+	case strings.Contains(err.Error(), logmonitor.URLmismatchContextLog):
+		logmonitor.Logger.Info(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.URLmismatchContextLog,
+		})
+	default:
+		// For other types of errors, respond with a 500 Internal Server Error.
+		logmonitor.Logger.Error(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
+		})
 	}
-
-	// For other types of errors, respond with a 500 Internal Server Error.
-	logmonitor.Logger.Error(logmonitor.AlertEmoji+"  "+logmonitor.WarningEmoji+"  "+logmonitor.FailedToUpdateURLContextLog, logFields...)
-	c.JSON(http.StatusInternalServerError, gin.H{
-		logmonitor.HeaderResponseError: logmonitor.HeaderResponseInternalServerError,
-	})
 }
 
 // bindUpdatePayload binds the JSON payload to the UpdateURLPayload struct and validates the new URL format.
@@ -317,7 +321,7 @@ func handleRetrievalError(err error, id string) error {
 // logMismatchError logs an informational message indicating a mismatch error during URL update process.
 func logMismatchError(id string) {
 	logFields := createLogFields(id)
-	logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
+	logmonitor.Logger.Info(logmonitor.GetBackEmoji+"  "+logmonitor.UrlshortenerEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLmismatchContextLog, logFields...)
 }
 
 // logAttemptToUpdate logs an informational message indicating an attempt to update a URL in the datastore.
