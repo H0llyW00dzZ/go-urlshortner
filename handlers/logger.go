@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -22,6 +26,16 @@ var internalSecretValue string
 // SetLogger sets the logger instance for the package.
 func SetLogger(logger *zap.Logger) {
 	Logger = logger
+}
+
+// logInfoWithEmoji logs an informational message with given emoji, context, and fields.
+func logInfoWithEmoji(emoji string, context string, fields ...zap.Field) {
+	Logger.Info(emoji+"  "+context, fields...)
+}
+
+// logErrorWithEmoji logs an error message with given emoji, context, and fields.
+func logErrorWithEmoji(emoji string, context string, fields ...zap.Field) {
+	Logger.Error(emoji+"  "+context, fields...)
 }
 
 // logAttemptToRetrieve logs an informational message indicating an attempt to retrieve the current URL by ID.
@@ -60,14 +74,14 @@ func LogError(context string, fields ...zap.Field) {
 
 // LogURLNotFound logs a "URL not found" error.
 func LogURLNotFound(id string, err error) {
-	logFields := createLogFieldsWithErr("getURL", id, err)
-	LogInfo(constant.GetBackEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.URLnotfoundContextLog, logFields...)
+	fields := createLogFieldsWithErr("getURL", id, err)
+	logInfoWithEmoji(constant.GetBackEmoji+" "+constant.UrlshortenerEmoji, constant.URLnotfoundContextLog, fields...)
 }
 
 // LogInternalError logs an internal server error.
 func LogInternalError(context string, id string, err error) {
-	logFields := createLogFieldsWithErr(context, id, err)
-	LogError(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToGetURLContextLog, logFields...)
+	fields := createLogFieldsWithErr(context, id, err)
+	logErrorWithEmoji(constant.SosEmoji+" "+constant.WarningEmoji, constant.FailedToGetURLContextLog, fields...)
 }
 
 // LogURLRetrievalSuccess logs a successful URL retrieval.
@@ -85,8 +99,8 @@ func LogInvalidURLFormat(url string) {
 
 // LogBadRequestError logs a message indicating a bad request error.
 func LogBadRequestError(context string, err error) {
-	logFields := createLogFieldsWithErr(context, "", err) // Assuming an empty ID for general bad requests
-	Logger.Info(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidRequestPayload, logFields...)
+	fields := createLogFieldsWithErr(context, "", err) // Assuming an empty ID for general bad requests
+	logInfoWithEmoji(constant.ErrorEmoji+" "+constant.UrlshortenerEmoji, constant.HeaderResponseInvalidRequestPayload, fields...)
 }
 
 // LogURLShortened logs a message indicating that a URL has been successfully shortened.
@@ -105,6 +119,69 @@ func LogDeletionError(id string, err error) {
 func LogURLDeletionSuccess(id string) {
 	logFields := createLogFields("delete_url", id)
 	Logger.Info(constant.UrlshortenerEmoji+" "+constant.SuccessEmoji+"  "+constant.URLDeletedSuccessfullyContextLog, logFields...)
+}
+
+// Use the centralized logging function from logmonitor package
+func createDeletionLogFields(id string, err error) []zap.Field {
+	return logmonitor.CreateLogFields("deleteURL",
+		logmonitor.WithComponent(constant.ComponentGopher),
+		logmonitor.WithID(id),
+		logmonitor.WithError(err),
+	)
+}
+
+// logNotFound handles logging and response for a "not found" situation.
+func logNotFound(c *gin.Context, id string) {
+	fields := createLogFields("deleteURL", id)
+	logInfoWithEmoji(constant.AlertEmoji+" "+constant.WarningEmoji, constant.NoURLIDContextLog, fields...)
+	c.JSON(http.StatusNotFound, gin.H{
+		constant.HeaderResponseError: constant.HeaderResponseIDandURLNotFound,
+	})
+}
+
+// isMismatchError checks if the error is a "mismatch error" situation.
+func isMismatchError(err error) bool {
+	return strings.Contains(err.Error(), constant.PathIDandPayloadIDDoesnotMatchContextLog)
+}
+
+// logMismatchError handles logging and response for a "mismatch error" situation.
+func logMismatchError(c *gin.Context, id string) {
+	fields := createLogFields("deleteURL", id)
+	logInfoWithEmoji(constant.ErrorEmoji+" "+constant.WarningEmoji, constant.URLmismatchContextLog, fields...)
+	c.JSON(http.StatusBadRequest, gin.H{
+		constant.HeaderResponseError: constant.PathIDandPayloadIDDoesnotMatchContextLog,
+	})
+}
+
+// isBadRequestError checks if the error is a "bad request" situation.
+func isBadRequestError(err error) bool {
+	return strings.Contains(err.Error(), constant.HeaderResponseInvalidRequestPayload)
+}
+
+// logBadRequest handles logging and response for a "bad request" situation.
+func logBadRequest(c *gin.Context, id string) {
+	fields := createLogFields("deleteURL", id)
+	logInfoWithEmoji(constant.ErrorEmoji+" "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestPayload, fields...)
+	c.JSON(http.StatusBadRequest, gin.H{
+		constant.HeaderResponseError: constant.HeaderResponseInvalidRequestPayload,
+	})
+}
+
+// logDefaultError handles logging and response for a default error situation.
+func logDefaultError(c *gin.Context, id string, err error) {
+	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
+		fields := createLogFields("deleteURL", id)
+		logInfoWithEmoji(constant.AlertEmoji+" "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestJSONBinding, fields...)
+		c.JSON(http.StatusBadRequest, gin.H{
+			constant.HeaderResponseError: badRequestErr.UserMessage,
+		})
+	} else {
+		fields := createLogFieldsWithErr("deleteURL", id, err)
+		logErrorWithEmoji(constant.SosEmoji+" "+constant.WarningEmoji, constant.FailedToDeletedURLContextLog, fields...)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
+		})
+	}
 }
 
 // createLogFieldsWithErr is a helper to create log fields including an error.
