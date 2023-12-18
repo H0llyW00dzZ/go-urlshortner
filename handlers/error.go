@@ -33,6 +33,27 @@ func isURLMismatchError(err error) bool {
 	return ok
 }
 
+// TODO: Refactor BadRequestError to be used consistently across the application.
+
+// BadRequestError represents an error when the request made by the client
+// contains bad syntax or cannot be fulfilled for some other reason.
+
+type BadRequestError struct {
+	Message string
+}
+
+// Error returns the error message of a BadRequestError.
+// This method allows BadRequestError to satisfy the error interface,
+// enabling it to be used like any other error.
+// TODO:
+// - Ensure BadRequestError is used in all handlers where bad requests need to be reported.
+// - Update logging functions to handle BadRequestError specifically.
+// - Review all BadRequestError occurrences to ensure the Message field is being used appropriately.
+
+func (e *BadRequestError) Error() string {
+	return e.Message
+}
+
 // handleUpdateError handles errors that occur during the URL update process.
 func handleUpdateError(c *gin.Context, id string, err error) {
 	logFields := logmonitor.CreateLogFields("editURL",
@@ -79,9 +100,45 @@ func handleDeletionError(c *gin.Context, err error) {
 		logBadRequest(c, id) // Pass the context and id instead of err.Error()
 	case isURLMismatchError(err): // This checks for the specific URL mismatch error
 		logURLMismatchError(c, id, err)
-	default:
-		logDefaultError(c, id, err) // Pass the context, id, and error
 	}
+}
+
+// SynclogError ensures that each error is logged only once.
+func SynclogError(c *gin.Context, operation string, err error) {
+	if err == nil || SyncerrorLogged(c) {
+		return
+	}
+
+	// Pass the operation name to the logging function.
+	SynclogSpecificError(c, operation, err)
+	markErrorLogged(c)
+}
+
+// errorLogged checks if the error has already been logged.
+func SyncerrorLogged(c *gin.Context) bool {
+	_, logged := c.Get("errorLogged")
+	return logged
+}
+
+// logSpecificError logs the error based on its type.
+func SynclogSpecificError(c *gin.Context, operation string, err error) {
+	switch err.(type) {
+	case *BadRequestError:
+		logBadRequest(c, operation) // Pass the operation name to the logging function.
+	default:
+		SynclogOtherError(c, operation, err) // Pass the operation name to the logging function.
+	}
+}
+
+// logOtherError logs non-specific errors.
+func SynclogOtherError(c *gin.Context, operation string, err error) {
+	logFields := createLogFieldsWithErr(operation, "", err) // Use the operation name here.
+	LogInfo(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.HeaderResponseInvalidRequest, logFields...)
+}
+
+// markErrorLogged marks the error as logged in the context.
+func markErrorLogged(c *gin.Context) {
+	c.Set("errorLogged", true)
 }
 
 // handleRetrievalError logs an error message for a failed retrieval attempt and returns a formatted error.
