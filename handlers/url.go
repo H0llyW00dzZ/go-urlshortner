@@ -118,7 +118,8 @@ func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload,
 	pathID = c.Param(constant.HeaderID)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// Use the centralized logging function to log the bad request error.
-		LogBadRequestError("validateUpdateRequest", err)
+		//LogBadRequestError("validateUpdateRequest", err)
+		SynclogError(c, "validateUpdateRequest", err) // Replaced with centralized logging function
 		return "", req, err
 	}
 
@@ -140,19 +141,21 @@ func updateURL(c *gin.Context, dsClient *datastore.Client, id string, req Update
 
 	currentURL, err := datastore.GetURL(c, dsClient, id)
 	if err != nil {
+		// Instead of handling the error here, we return it to the caller to handle.
 		return handleRetrievalError(err, id)
 	}
 
 	if currentURL.Original != req.OldURL {
-		LogMismatchError(id)
-		return fmt.Errorf(constant.URLmismatchContextLog)
+		// Return a URLMismatchError which can be handled specifically by the caller.
+		return &URLMismatchError{Message: constant.URLmismatchContextLog}
 	}
 
 	logAttemptToUpdate(id)
 
 	// Update the URL in the datastore with the new URL.
 	if err := datastore.UpdateURL(c, dsClient, id, req.NewURL); err != nil {
-		return err // Simply return the error
+		// Return the error to the caller to handle.
+		return err
 	}
 
 	logSuccessfulUpdate(id)
@@ -175,7 +178,8 @@ func extractURL(c *gin.Context) (string, error) {
 	var req CreateURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// Replace the direct logger call with a centralized logging function
-		LogBadRequestError("extractURL", err)
+		// LogBadRequestError("extractURL", err)
+		SynclogError(c, "extractURL", err) // Replaced with centralized logging function
 		return "", err
 	}
 
@@ -214,7 +218,7 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 	// Bind the JSON payload to the DeleteURLPayload struct.
 	var req DeleteURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		LogBadRequestError("deleteURL", err) // Log the bad request error
+		SynclogError(c, idFromPath, err) // Log the bad request error
 		return fmt.Errorf(constant.HeaderResponseInvalidRequestPayload+": %v", err)
 	}
 

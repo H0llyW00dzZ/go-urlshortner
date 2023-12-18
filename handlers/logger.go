@@ -177,27 +177,10 @@ func isBadRequestError(err error) bool {
 // logBadRequest handles logging and response for a "bad request" situation.
 func logBadRequest(c *gin.Context, id string) {
 	fields := createLogFields("deleteURL", id)
-	logInfoWithEmoji(constant.ErrorEmoji+"  "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestPayload, fields...)
+	logInfoWithEmoji(constant.ErrorEmoji+"  "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestJSONBinding, fields...)
 	c.JSON(http.StatusBadRequest, gin.H{
 		constant.HeaderResponseError: constant.HeaderResponseInvalidRequestPayload,
 	})
-}
-
-// logDefaultError handles logging and response for a default error situation.
-func logDefaultError(c *gin.Context, id string, err error) {
-	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		fields := createLogFields("deleteURL", id)
-		logInfoWithEmoji(constant.AlertEmoji+"  "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestJSONBinding, fields...)
-		c.JSON(http.StatusBadRequest, gin.H{
-			constant.HeaderResponseError: badRequestErr.UserMessage,
-		})
-	} else {
-		fields := createLogFieldsWithErr("deleteURL", id, err)
-		logErrorWithEmoji(constant.SosEmoji+"  "+constant.WarningEmoji, constant.FailedToDeletedURLContextLog, fields...)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
-		})
-	}
 }
 
 // createLogFieldsWithErr is a helper to create log fields including an error.
