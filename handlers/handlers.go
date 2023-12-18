@@ -38,7 +38,9 @@ type CreateURLPayload struct {
 }
 
 // UpdateURLPayload defines the structure for the JSON payload when updating an existing URL.
+// Fixed a bug potential leading to  Exploit CWE-284 / IDOR in the json payloads, Now It's safe with ID.
 type UpdateURLPayload struct {
+	ID     string `json:"id"`
 	OldURL string `json:"old_url"`
 	NewURL string `json:"new_url"`
 }
@@ -199,24 +201,29 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 // editURLHandlerGin returns a Gin handler function that handles the updating of an existing shortened URL.
 func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get the ID from the URL path parameter.
-		id := c.Param(logmonitor.HeaderID)
+		pathID := c.Param(logmonitor.HeaderID) // Get the ID from the URL path parameter.
 
 		// Bind the JSON payload to the UpdateURLPayload struct.
-		req, err := bindUpdatePayload(c)
-		if err != nil {
+		var req UpdateURLPayload
+		if err := c.ShouldBindJSON(&req); err != nil {
 			handleError(c, logmonitor.HeaderResponseInvalidRequest, http.StatusBadRequest, err)
+			return
+		}
+
+		// Validate that the path ID matches the payload ID.
+		if pathID != req.ID {
+			handleError(c, logmonitor.PathIDandPayloadIDDoesnotMatchContextLog, http.StatusBadRequest, fmt.Errorf(logmonitor.MisMatchBetweenPathIDandPayloadIDContextLog))
 			return
 		}
 
 		logFields := logmonitor.CreateLogFields("editURL",
 			logmonitor.WithComponent(logmonitor.ComponentNoSQL), // Use the constant for the component
-			logmonitor.WithID(id),
-			logmonitor.WithError(err), // Include the error here, but it will be nil if there's no error
+			logmonitor.WithID(pathID),
+			logmonitor.WithError(nil), // Include the error here, but it will be nil if there's no error
 		)
 
 		// Perform the update operation.
-		err = updateURL(c, dsClient, id, req)
+		err := updateURL(c, dsClient, pathID, req)
 		if err != nil {
 			if strings.Contains(err.Error(), logmonitor.URLmismatchContextLog) {
 				handleError(c, err.Error(), http.StatusBadRequest, err)
@@ -229,8 +236,8 @@ func editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Respond with the updated URL information.
-		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.ErrorEmoji+"  "+logmonitor.URLupdateContextLog, logFields...)
-		respondWithUpdatedURL(c, id)
+		logmonitor.Logger.Info(logmonitor.UrlshortenerEmoji+"  "+logmonitor.NewEmoji+"  "+logmonitor.SuccessEmoji+"  "+logmonitor.URLupdateContextLog, logFields...)
+		respondWithUpdatedURL(c, pathID)
 	}
 }
 
