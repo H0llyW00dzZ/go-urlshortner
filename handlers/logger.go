@@ -26,32 +26,69 @@ func SetLogger(logger *zap.Logger) {
 
 // logAttemptToRetrieve logs an informational message indicating an attempt to retrieve the current URL by ID.
 func logAttemptToRetrieve(id string) {
-	logFields := createLogFields(id)
-	logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.InfoAttemptingToRetrieveTheCurrentURL, logFields...)
+	logFields := createLogFields("retrieve", id) // Provide a default operation name
+	Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.InfoAttemptingToRetrieveTheCurrentURL, logFields...)
 }
 
 // logMismatchError logs an informational message indicating a mismatch error during URL update process.
 func logMismatchError(id string) {
-	logFields := createLogFields(id)
-	logmonitor.Logger.Info(constant.GetBackEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.ErrorEmoji+"  "+constant.URLmismatchContextLog, logFields...)
+	logFields := createLogFields("mismatch_error", id) // Provide a default operation name
+	Logger.Info(constant.GetBackEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.ErrorEmoji+"  "+constant.URLmismatchContextLog, logFields...)
 }
 
 // logAttemptToUpdate logs an informational message indicating an attempt to update a URL in the datastore.
 func logAttemptToUpdate(id string) {
-	logFields := createLogFields(id)
-	logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+datastore.InfoAttemptingToUpdateURLInDatastore, logFields...)
+	logFields := createLogFields("update_attempt", id) // Provide a default operation name
+	Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+datastore.InfoAttemptingToUpdateURLInDatastore, logFields...)
 }
 
 // logSuccessfulUpdate logs an informational message indicating a successful update of a URL in the datastore.
 func logSuccessfulUpdate(id string) {
-	logFields := createLogFields(id)
-	logmonitor.Logger.Info(constant.UrlshortenerEmoji+"  "+constant.UpdateEmoji+"  "+constant.SuccessEmoji+"  "+datastore.InfoUpdateSuccessful, logFields...)
+	logFields := createLogFields("successful_update", id) // Provide a default operation name
+	Logger.Info(constant.UrlshortenerEmoji+"  "+constant.UpdateEmoji+"  "+constant.SuccessEmoji+"  "+datastore.InfoUpdateSuccessful, logFields...)
 }
 
-// createLogFields generates a slice of zap.Field containing common log fields for the updateURL operation.
-func createLogFields(id string) []zap.Field {
-	return logmonitor.CreateLogFields("updateURL",
+// LogInfo logs an informational message with given context fields.
+func LogInfo(context string, fields ...zap.Field) {
+	Logger.Info(context, fields...)
+}
+
+// LogError logs an error message with given context fields.
+func LogError(context string, fields ...zap.Field) {
+	Logger.Error(context, fields...)
+}
+
+// LogURLNotFound logs a "URL not found" error.
+func LogURLNotFound(id string, err error) {
+	logFields := createLogFieldsWithErr("getURL", id, err)
+	LogInfo(constant.GetBackEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.URLnotfoundContextLog, logFields...)
+}
+
+// LogInternalError logs an internal server error.
+func LogInternalError(context string, id string, err error) {
+	logFields := createLogFieldsWithErr(context, id, err)
+	LogError(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToGetURLContextLog, logFields...)
+}
+
+// LogURLRetrievalSuccess logs a successful URL retrieval.
+func LogURLRetrievalSuccess(id string) {
+	logFields := createLogFields("getURL", id) // Now correctly using two arguments
+	Logger.Info(constant.UrlshortenerEmoji+"  "+constant.RedirectEmoji+"  "+constant.SuccessEmoji+"  "+constant.URLRetriveContextLog, logFields...)
+}
+
+// createLogFieldsWithErr is a helper to create log fields including an error.
+func createLogFieldsWithErr(operation string, id string, err error) []zap.Field {
+	return logmonitor.CreateLogFields(operation,
 		logmonitor.WithComponent(constant.ComponentNoSQL),
 		logmonitor.WithID(id),
+		logmonitor.WithError(err),
 	)
+}
+
+// createLogFields creates a slice of zap.Field with the operation and ID.
+func createLogFields(operation, id string) []zap.Field {
+	return []zap.Field{
+		zap.String("operation", operation),
+		zap.String("id", id),
+	}
 }
