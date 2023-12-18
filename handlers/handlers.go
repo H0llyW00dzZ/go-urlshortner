@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -171,7 +172,7 @@ func postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		// Generate a short identifier for the URL.
-		id, err := generateShortID()
+		id, err := generateShortID(c.Request.Context(), dsClient) // Pass the request context and datastore client
 		if err != nil {
 			handleError(c, logmonitor.HeaderResponseFailedtoGenerateID, http.StatusInternalServerError, err)
 			return
@@ -507,8 +508,18 @@ func performDelete(c *gin.Context, dsClient *datastore.Client, id string) error 
 }
 
 // generateShortID generates a short identifier for the URL.
-func generateShortID() (string, error) {
-	return shortid.Generate(5)
+//
+// The generateShortID function is responsible for generating a unique short ID.
+//
+// If the generated ID is not unique, it will keep trying until it finds a unique one,
+// otherwise it will return an error indicate that your machine is bad.
+func generateShortID(ctx context.Context, dsClient *datastore.Client) (string, error) {
+
+	id, err := shortid.GenerateUnique(ctx, dsClient, 5)
+	if err != nil {
+		return "", err // If there's an error generating the ID, return it immediately.
+	}
+	return id, nil // If the ID is unique, return it.
 }
 
 // saveURL saves the URL and its identifier to the datastore.
