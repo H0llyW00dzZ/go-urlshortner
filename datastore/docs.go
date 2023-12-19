@@ -33,7 +33,7 @@
 //
 //	var Logger *zap.Logger
 //
-// # Handlers:
+// # Handlers Functions:
 //
 // The package provides functions to handle datastore operations. These functions
 // include creating a new client, saving, retrieving, updating, and deleting URL
@@ -84,5 +84,5 @@
 // calling the CloseClient function to release any resources associated with the
 // client.
 //
-// Copyright (c) 2023 H0llyW00dzZ
+// Copyright (c) 2023 by H0llyW00dzZ
 package datastore
