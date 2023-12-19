@@ -34,7 +34,7 @@
 //	    router.Run(":8080")
 //	}
 //
-// # Flushing Logs:
+// Flushing Logs:
 // It is crucial to flush any buffered log entries upon application termination to ensure all logs
 // are committed to their intended destination. This is accomplished by invoking the Logger.Sync()
 // method, typically in the main function using defer to guarantee execution even during an
