@@ -11,6 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// id is a package-level variable to store the ID of the URL.
+var id string
+
 func init() {
 
 	// Initialize the base path from an environment variable or use "/" as default.
