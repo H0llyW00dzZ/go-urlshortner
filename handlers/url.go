@@ -31,7 +31,7 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 				})
 			} else {
 				// For any other errors, log the internal error event and return a 500 Internal Server Error response.
-				LogInternalError("getURL", id, err)
+				LogInternalError(operation_getURL, id, err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
 				})
@@ -41,7 +41,7 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 
 		// If the retrieved URL is nil, log the error and return a 500 Internal Server Error response.
 		if url == nil {
-			LogInternalError("getURL", id, fmt.Errorf(constant.URLisNilContextLog))
+			LogInternalError(operation_getURL, id, fmt.Errorf(constant.URLisNilContextLog))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
 			})
@@ -119,7 +119,7 @@ func validateUpdateRequest(c *gin.Context) (pathID string, req UpdateURLPayload,
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// Use the centralized logging function to log the bad request error.
 		//LogBadRequestError("validateUpdateRequest", err)
-		SynclogError(c, "validateUpdateRequest", err) // Replaced with centralized logging function
+		SynclogError(c, operation_validateUpdateRequest, err) // Replaced with centralized logging function
 		return "", req, err
 	}
 
@@ -179,7 +179,7 @@ func extractURL(c *gin.Context) (string, error) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// Replace the direct logger call with a centralized logging function
 		// LogBadRequestError("extractURL", err)
-		SynclogError(c, "extractURL", err) // Replaced with centralized logging function
+		SynclogError(c, operation_extractURL, err) // Replaced with centralized logging function
 		return "", err
 	}
 

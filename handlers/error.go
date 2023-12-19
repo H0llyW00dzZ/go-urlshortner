@@ -56,7 +56,7 @@ func (e *BadRequestError) Error() string {
 
 // handleUpdateError handles errors that occur during the URL update process.
 func handleUpdateError(c *gin.Context, id string, err error) {
-	logFields := logmonitor.CreateLogFields("editURL",
+	logFields := logmonitor.CreateLogFields(operation_editURL,
 		logmonitor.WithComponent(constant.ComponentGopher),
 		logmonitor.WithID(id),
 		logmonitor.WithError(err),
@@ -148,7 +148,7 @@ func markErrorLogged(c *gin.Context) {
 // If the error is a 'not found' error, it logs a specific message for that case.
 func handleRetrievalError(err error, id string) error {
 	// Add an operation name as the first argument to createLogFields.
-	logFields := createLogFields("retrieveURL", id)
+	logFields := createLogFields(operation_retrieveURL, id)
 	if err == datastore.ErrNotFound {
 		logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.NoURLIDContextLog, logFields...)
 		return datastore.ErrNotFound // Return the original error directly
