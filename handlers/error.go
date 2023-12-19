@@ -46,6 +46,16 @@ func (e *BadRequestError) Error() string {
 	return e.Message
 }
 
+// TODO: FriendlyError represents an error that is safe to return to the client & server (middleware).
+type FriendlyError struct {
+	Message string
+}
+
+// TODO: FriendlyError represents an error that is safe to return to the client & server (middleware).
+func (e *FriendlyError) Error() string {
+	return e.Message
+}
+
 // handleUpdateError handles errors that occur during the URL update process.
 func handleUpdateError(c *gin.Context, id string, err error) {
 	logFields := logmonitor.CreateLogFields(operation_editURL,
