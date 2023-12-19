@@ -105,15 +105,6 @@ func handleDeletionError(c *gin.Context, err error) {
 	logDeletionOtherError(c, id, err)
 }
 
-// logDeletionOtherError logs and responds for other deletion errors.
-func logDeletionOtherError(c *gin.Context, id string, err error) {
-	logFields := createDeletionLogFields(id, err)
-	Logger.Error(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji, logFields...)
-	c.JSON(http.StatusInternalServerError, gin.H{
-		constant.HeaderResponseError: err.Error(),
-	})
-}
-
 // SynclogError ensures that each error is logged only once.
 func SynclogError(c *gin.Context, operation string, err error) {
 	if err == nil || SyncerrorLogged(c) {

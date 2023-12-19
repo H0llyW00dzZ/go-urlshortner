@@ -184,6 +184,15 @@ func logBadRequest(c *gin.Context, id string, err *BadRequestError) {
 	})
 }
 
+// logDeletionOtherError logs and responds for other deletion errors.
+func logDeletionOtherError(c *gin.Context, id string, err error) {
+	logFields := createDeletionLogFields(id, err)
+	Logger.Error(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji, logFields...)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		constant.HeaderResponseError: err.Error(),
+	})
+}
+
 // createLogFieldsWithErr is a helper to create log fields including an error.
 func createLogFieldsWithErr(operation string, id string, err error) []zap.Field {
 	return logmonitor.CreateLogFields(operation,
