@@ -1,10 +1,6 @@
 package handlers
 
 import (
-	"net/http"
-
-	"strings"
-
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
@@ -67,30 +63,21 @@ func (e *FriendlyError) Error() string {
 
 // handleUpdateError handles errors that occur during the URL update process.
 func handleUpdateError(c *gin.Context, id string, err error) {
-	logFields := logmonitor.CreateLogFields(operation_editURL,
-		logmonitor.WithComponent(constant.ComponentGopher),
-		logmonitor.WithID(id),
-		logmonitor.WithError(err),
-	)
-
-	switch {
-	case err == datastore.ErrNotFound:
-		logmonitor.Logger.Info(constant.GetBackEmoji+"  "+constant.UrlshortenerEmoji+"  "+constant.URLnotfoundContextLog, logFields...)
-		c.JSON(http.StatusNotFound, gin.H{
-			constant.HeaderResponseError: constant.URLnotfoundContextLog,
-		})
-	case strings.Contains(err.Error(), constant.URLmismatchContextLog):
-		logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.URLmismatchContextLog, logFields...)
-		c.JSON(http.StatusBadRequest, gin.H{
-			constant.HeaderResponseError: constant.URLmismatchContextLog,
-		})
-	default:
-		// For other types of errors, respond with a 500 Internal Server Error.
-		logmonitor.Logger.Error(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToUpdateURLContextLog, logFields...)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
-		})
+	if err == datastore.ErrNotFound {
+		logNotFound(c, id)
+		return
 	}
+	if urlMismatchErr, ok := err.(*URLMismatchError); ok {
+		logURLMismatchError(c, id, urlMismatchErr)
+		return
+	}
+	if badRequestErr, ok := err.(*BadRequestError); ok {
+		logBadRequest(c, id, badRequestErr)
+		return
+	}
+
+	// Handle other types of errors
+	logUpdateOtherError(c, id, err)
 }
 
 // handleDeletionError handles errors that occur during the URL deletion process.
