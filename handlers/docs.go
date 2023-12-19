@@ -71,91 +71,14 @@
 //
 // # Handler Functions
 //
-// The package provides several HTTP handler functions to manage URL entities. These functions
-// are designed to be registered with the Gin web framework's router and handle different
-// HTTP methods and endpoints.
+// Endpoint handler functions such as getURLHandlerGin and postURLHandlerGin manage
+// the retrieval and creation of URL mappings. Functions like editURLHandlerGin and
+// deleteURLHandlerGin handle the updating and deletion of these mappings.
 //
-//   - getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc:
-//     Retrieves the original URL based on the short identifier provided in the request path
-//     and redirects the client to it. Responds with HTTP 404 if the URL is not found, or
-//     HTTP 500 for other errors.
-//
-//   - postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc:
-//     Handles the creation of a new shortened URL. It expects a JSON payload with the original
-//     URL, generates a short identifier, stores the mapping, and returns the shortened URL.
-//
-//   - editURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc:
-//     Manages the updating of an existing shortened URL. It validates the request payload,
-//     verifies the existing URL, and updates it with the new URL provided.
-//
-//   - deleteURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc:
-//     Handles the deletion of an existing shortened URL. It validates the provided ID and URL,
-//     and if they match the stored entity, deletes the URL from the datastore.
-//
-// Each handler function utilizes the provided datastore client to interact with Google Cloud
-// Datastore and leverages structured logging for operational events.
-//
-// The following helper functions are used within the handlers to perform specific tasks:
-//
-//   - validateUpdateRequest(c *gin.Context) (string, UpdateURLPayload, error):
-//     Validates the update request and extracts the path ID and request payload.
-//
-//   - updateURL(c *gin.Context, dsClient *datastore.Client, id string, req UpdateURLPayload) error:
-//     Retrieves the current URL, verifies it, and updates it with the new URL.
-//
-//   - respondWithUpdatedURL(c *gin.Context, id string):
-//     Constructs and sends a JSON response with the updated URL information.
-//
-//   - extractURL(c *gin.Context) (string, error):
-//     Extracts the original URL from the JSON payload in the request.
-//
-//   - validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error:
-//     Validates the ID and URL and performs the deletion if they are correct.
-//
-//   - deleteURL(c *gin.Context, dsClient *datastore.Client, id string, providedURL string) error:
-//     Verifies the provided ID and URL against the stored URL entity and deletes it if they match.
-//
-//   - getCurrentURL(c *gin.Context, dsClient *datastore.Client, id string) (*datastore.URL, error):
-//     Retrieves the current URL from the datastore and checks for errors.
-//
-//   - performDelete(c *gin.Context, dsClient *datastore.Client, id string) error:
-//     Deletes the URL entity from the datastore.
-//
-//   - saveURL(c *gin.Context, dsClient *datastore.Client, id string, originalURL string) error:
-//     Saves the URL and its identifier to the datastore.
-//
-// These functions are integral to the handlers' logic, facilitating validation, data retrieval,
-// and response generation. They ensure that the handlers remain focused on HTTP-specific logic
-// while delegating datastore interactions and other operations to specialized functions.
-//
-// # Middleware
-//
-// The package also includes middleware functions that provide additional layers of request
-// processing, such as access control. These middleware functions are applied to certain
-// handler functions to enforce security policies and request validation.
-//
-//   - InternalOnly():
-//     A middleware function that restricts access to certain endpoints to internal services
-//     only by requiring a secret value in the request header.
-//
-// Middleware functions are registered within the Gin router setup and are executed in the
-// order they are applied to the routes.
-//
-// # Registering Handlers with Gin Router
-//
-// The handler functions are registered with the Gin router in the main application setup.
-// This registration associates HTTP methods and paths with the corresponding handler functions
-// and applies any necessary middleware.
-//
-//	func RegisterHandlersGin(router *gin.Engine, dsClient *datastore.Client) {
-//	    router.GET("/:id", getURLHandlerGin(dsClient))
-//	    router.POST("/", postURLHandlerGin(dsClient))
-//	    router.PUT("/:id", editURLHandlerGin(dsClient))
-//	    router.DELETE("/:id", deleteURLHandlerGin(dsClient))
-//	}
-//
-// The RegisterHandlersGin function is the central point for configuring the routing
-// for the URL shortener service, ensuring that each endpoint is handled correctly.
+// The RegisterHandlersGin function configures the routing for the service, associating
+// endpoints with their respective handler functions and applying any necessary middleware.
+// It also allows for the configuration of a base path for all routes, which can be set
+// through an environment variable.
 //
 // # Bug Fixes and Security Enhancements
 //
