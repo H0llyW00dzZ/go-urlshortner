@@ -57,13 +57,13 @@
 // Middleware functions such as InternalOnly enforce access control by requiring a secret
 // value in the request header, compared against an environment Variables variable.
 //
-// The package also exports several key values:
+// # The package also exports several key values:
 //
 //   - Logger: A *zap.Logger instance used for structured logging throughout the package.
 //   - basePath: A string representing the base path for the URL shortener's endpoints.
 //   - internalSecretValue: A string used by the InternalOnly middleware to validate requests against internal services.
 //
-// The following code snippets illustrate the declaration of these Variables values:
+// # The following code snippets illustrate the declaration of these Variables values:
 //
 //	var Logger *zap.Logger
 //	var basePath string
@@ -95,7 +95,7 @@
 // Each handler function utilizes the provided datastore client to interact with Google Cloud
 // Datastore and leverages structured logging for operational events.
 //
-// The following helper functions are used within the handlers to perform specific tasks:
+// # The following helper functions are used within the handlers to perform specific tasks:
 //
 //   - validateUpdateRequest(c *gin.Context) (string, UpdateURLPayload, error):
 //     Validates the update request and extracts the path ID and request payload.
