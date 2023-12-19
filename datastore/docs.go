@@ -23,12 +23,12 @@
 //
 // # Variables:
 //
-// The package exposes an `ErrNotFound` variable, which is an error that represents
+// The package exposes an ErrNotFound variable, which is an error that represents
 // the absence of a URL entity in the datastore.
 //
 //	var ErrNotFound = errors.New("no such entity")
 //
-// The package also includes a package-level `Logger` variable, which is intended to
+// The package also includes a package-level Logger variable, which is intended to
 // be used across the datastore package for consistent logging.
 //
 //	var Logger *zap.Logger
