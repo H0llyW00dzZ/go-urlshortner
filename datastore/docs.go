@@ -3,12 +3,50 @@
 // updating, and deleting URL entities. It is designed to work with the URL shortener
 // service to manage shortened URLs and their corresponding original URLs.
 //
-// The package encapsulates the complexity of direct datastore interactions and offers
-// a simplified API for the rest of the application. It also integrates structured
-// logging using the zap library, which allows for consistent and searchable log
-// entries across the service.
+// # Types:
 //
-// Usage example:
+// The Client type is a wrapper around the Google Cloud Datastore client that
+// provides additional methods for URL entity management. It abstracts away the
+// underlying datastore implementation details.
+//
+//	type Client struct {
+//	    *cloudDatastore.Client
+//	}
+//
+// The URL type represents a URL entity within the datastore, with fields for the
+// original URL and a unique identifier.
+//
+//	type URL struct {
+//	    Original string `datastore:"original"` // The original URL.
+//	    ID       string `datastore:"id"`       // The unique identifier for the shortened URL.
+//	}
+//
+// # Variables:
+//
+// The package exposes an `ErrNotFound` variable, which is an error that represents
+// the absence of a URL entity in the datastore.
+//
+//	var ErrNotFound = errors.New("no such entity")
+//
+// The package also includes a package-level `Logger` variable, which is intended to
+// be used across the datastore package for consistent logging.
+//
+//	var Logger *zap.Logger
+//
+// # Handlers:
+//
+// The package provides functions to handle datastore operations. These functions
+// include creating a new client, saving, retrieving, updating, and deleting URL
+// entities.
+//
+//	func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error)
+//	func SaveURL(ctx context.Context, client *Client, url *URL) error
+//	func GetURL(ctx context.Context, client *Client, id string) (*URL, error)
+//	func UpdateURL(ctx context.Context, client *Client, id string, newURL string) error
+//	func DeleteURL(ctx context.Context, client *Client, id string) error
+//	func CloseClient(client *Client) error
+//
+// # Example of package usage:
 //
 //	func main() {
 //	    logger, _ := zap.NewDevelopment()
@@ -16,50 +54,34 @@
 //	    config := datastore.NewConfig(logger, "my-project-id")
 //	    client, err := datastore.CreateDatastoreClient(ctx, config)
 //	    if err != nil {
-//	        log.Fatalf("Failed to create datastore client: %v", err)
+//	        logger.Fatal("Failed to create datastore client", zap.Error(err))
 //	    }
 //	    defer datastore.CloseClient(client)
 //
 //	    // Use the client to interact with the datastore
 //	    url := &datastore.URL{Original: "https://example.com", ID: "abc123"}
 //	    if err := datastore.SaveURL(ctx, client, url); err != nil {
-//	        log.Fatalf("Failed to save URL: %v", err)
+//	        logger.Fatal("Failed to save URL", zap.Error(err))
 //	    }
 //
 //	    // Retrieve, update, or delete URLs as needed
+//	    retrievedURL, err := datastore.GetURL(ctx, client, "abc123")
+//	    if err != nil {
+//	        logger.Error("Failed to retrieve URL", zap.Error(err))
+//	    } else {
+//	        logger.Info("Retrieved URL", zap.String("original", retrievedURL.Original))
+//	    }
 //	}
-//
-// The package also defines a custom `URL` type that represents a URL entity within
-// the datastore. This type is used for all operations that involve URL entities.
-//
-// The `Client` type wraps the Google Cloud Datastore client, providing a layer of
-// abstraction that allows for mocking and testing without relying on an actual
-// datastore instance.
-//
-// The `NewConfig` function creates a new `Config` instance, which holds the
-// configuration settings for the datastore client, including the logger and project ID.
-//
-// The `CreateDatastoreClient` function now requires a `Config` object instead of a
-// project ID string, reflecting a more structured approach to configuration.
-//
-// The `SetLogger` function allows for the injection of a zap logger instance, which
-// is used throughout the package to log operations and errors. This ensures that
-// any issues or actions are logged in a format that is consistent with the rest of
-// the URL shortener service.
-//
-// Error handling is a critical aspect of the package. The `ErrNotFound` variable is
-// returned when a requested entity is not found in the datastore, allowing calling
-// code to distinguish between different types of errors and handle them accordingly.
 //
 // The package functions are designed to be used in a concurrent environment and are
 // safe for use by multiple goroutines.
 //
-// The `CreateContext` function is provided to create a new context for datastore
+// The CreateContext function is provided to create a new context for datastore
 // operations, which can be used to control the lifetime of requests and to pass
 // cancellation signals and other request-scoped values across API boundaries.
 //
 // It is important to close the datastore client when it is no longer needed by
-// calling the `CloseClient` function to release any resources associated with the
+// calling the CloseClient function to release any resources associated with the
 // client.
 //
 // Copyright (c) 2023 H0llyW00dzZ
