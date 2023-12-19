@@ -1,8 +1,12 @@
 package datastore
 
 // Define datastore constants.
+//
 // This is used to identify the component that is logging the message.
+//
 // Easy Maintenance: If the error message changes, it only need to change it in one place.
+//
+// Note: some constants are not used in the code, indicate that for future use.
 const (
 	DataStoreNosuchentity         = "datastore: no such entity"
 	DataStoreFailedtoCreateClient = "Failed to create client"

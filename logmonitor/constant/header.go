@@ -1,6 +1,8 @@
 package constant
 
 // Define header response for different components.
+//
+// Note: some constants are not used in the code, indicate that for future use.
 const (
 	HeaderResponseError                     = "error"
 	HeaderResponseInternalServerError       = "internal server error"
@@ -19,12 +21,16 @@ const (
 )
 
 // Define header request for different components.
+//
+// Note: some constants are not used in the code, indicate that for future use.
 const (
 	HeaderRequestOldURL = "old_url"
 	HeaderRequestNewURL = "new_url"
 )
 
 // Define header for different components.
+//
+// Note: some constants are not used in the code, indicate that for future use.
 const (
 	HeaderID              = "id"
 	HeaderURL             = "url"
@@ -36,6 +42,8 @@ const (
 )
 
 // Define gin context log for different components.
+//
+// Note: some constants are not used in the code, indicate that for future use.
 const (
 	GinContextErrLog = "errorLogged"
 )
