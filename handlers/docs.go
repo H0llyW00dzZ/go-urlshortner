@@ -20,10 +20,10 @@
 //	    dsClient := datastore.NewClient()
 //
 //	    // Set the logger instance for the handlers package.
-//	    handlers.SetLogger(logmonitor.NewLogger())
+//	    Logger = logmonitor.NewLogger()
 //
 //	    // Register the URL shortener's HTTP handlers with the Gin router.
-//	    handlers.RegisterHandlersGin(router, dsClient)
+//	    RegisterHandlersGin(router, dsClient)
 //
 //	    // Start the HTTP server on port 8080.
 //	    router.Run(":8080")
@@ -37,6 +37,23 @@
 // - UpdateURLPayload: Represents the JSON payload for updating an existing shortened URL, containing the original and new URLs along with an identifier.
 // - DeleteURLPayload: Represents the JSON payload for deleting a shortened URL, containing the URL and its identifier.
 //
+// The following code snippets illustrate the structures of these types:
+//
+//	type CreateURLPayload struct {
+//	    URL string `json:"url" binding:"required,url"`
+//	}
+//
+//	type UpdateURLPayload struct {
+//	    ID     string `json:"id" binding:"required"`
+//	    OldURL string `json:"old_url" binding:"required,url"`
+//	    NewURL string `json:"new_url" binding:"required,url"`
+//	}
+//
+//	type DeleteURLPayload struct {
+//	    ID  string `json:"id" binding:"required"`
+//	    URL string `json:"url" binding:"required,url"`
+//	}
+//
 // Middleware functions such as `InternalOnly` enforce access control by requiring a secret
 // value in the request header, compared against an environment variable.
 //
@@ -45,6 +62,12 @@
 // - Logger: A `*zap.Logger` instance used for structured logging throughout the package.
 // - basePath: A string representing the base path for the URL shortener's endpoints.
 // - internalSecretValue: A string used by the `InternalOnly` middleware to validate requests against internal services.
+//
+// The following code snippets illustrate the declaration of these values:
+//
+//	var Logger *zap.Logger
+//	var basePath string
+//	var internalSecretValue string
 //
 // # Handler Functions
 //
