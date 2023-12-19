@@ -14,6 +14,14 @@ import (
 // id is a package-level variable to store the ID of the URL.
 var id string
 
+// basePath is a package-level variable to store the base path for the handlers.
+// It is set once during package initialization.
+var basePath string
+
+// internalSecretValue is a package-level variable that stores the secret value required by the InternalOnly middleware.
+// It is set once during package initialization.
+var internalSecretValue string
+
 func init() {
 
 	// Initialize the base path from an environment variable or use "/" as default.
