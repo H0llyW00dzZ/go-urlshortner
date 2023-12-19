@@ -29,9 +29,24 @@
 //	    router.Run(":8080")
 //	}
 //
-// The package defines various types to encapsulate request payloads and middleware functions.
-// For instance, the `InternalOnly` middleware function enforces access restrictions by matching
-// a secret value in the request header against a predefined environment variable.
+// # Types and Values
+//
+// The package defines various types to encapsulate request payloads and middleware functions:
+//
+// - CreateURLPayload: Represents the JSON payload for creating a new shortened URL, containing the original URL.
+// - UpdateURLPayload: Represents the JSON payload for updating an existing shortened URL, containing the original and new URLs along with an identifier.
+// - DeleteURLPayload: Represents the JSON payload for deleting a shortened URL, containing the URL and its identifier.
+//
+// Middleware functions such as `InternalOnly` enforce access control by requiring a secret
+// value in the request header, compared against an environment variable.
+//
+// The package also exports several key values:
+//
+// - Logger: A `*zap.Logger` instance used for structured logging throughout the package.
+// - basePath: A string representing the base path for the URL shortener's endpoints.
+// - internalSecretValue: A string used by the `InternalOnly` middleware to validate requests against internal services.
+//
+// # Handler Functions
 //
 // Endpoint handler functions such as `getURLHandlerGin` and `postURLHandlerGin` manage
 // the retrieval and creation of URL mappings. Functions like `editURLHandlerGin` and
