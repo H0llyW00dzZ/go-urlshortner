@@ -1,38 +1,46 @@
-// Package handlers provides the HTTP handling logic for the URL shortener service.
-// It includes handlers for creating, retrieving, updating, and deleting shortened URLs,
-// with storage backed by Google Cloud Datastore. The package also offers middleware
-// for access control, ensuring that certain operations are restricted to internal use.
+// Package handlers implements the HTTP or HTTPS handling logic for a URL shortener service.
+// It provides handlers for creating, retrieving, updating, and deleting shortened URLs,
+// leveraging Google Cloud Datastore for persistent storage. The package includes middleware
+// for access control, which ensures that sensitive operations are restricted to internal services.
 //
-// The handlers are designed to work with the Gin web framework and are registered
-// to the Gin router, establishing the service's RESTful API. Each handler function
-// is responsible for processing specific types of HTTP requests, validating input,
-// interacting with the datastore, and formatting the HTTP response.
+// Handlers are registered with the Gin web framework's router, forming the RESTful API of the service.
+// Each handler function is tasked with handling specific HTTP or HTTPS request types, validating payloads,
+// performing operations against the datastore, and crafting the HTTP or HTTPS response.
 //
-// Structured logging is employed throughout the package via the `logmonitor` package,
-// ensuring that operational events are recorded in a consistent and searchable format.
-// This facilitates debugging and monitoring of the service.
+// Consistent and structured logging is maintained across the package using the `logmonitor` package,
+// which aids in the systematic recording of operational events for ease of debugging and service monitoring.
 //
-// Usage example:
+// Example of package usage:
 //
 //	func main() {
+//	    // Initialize a Gin router.
 //	    router := gin.Default()
-//	    dsClient := datastore.NewClient() // Assuming a function to create a new datastore client
-//	    handlers.SetLogger(logmonitor.Logger) // Set the logger for the handlers package
+//
+//	    // Create a new datastore client (assuming a constructor function exists).
+//	    dsClient := datastore.NewClient()
+//
+//	    // Set the logger instance for the handlers package.
+//	    handlers.SetLogger(logmonitor.NewLogger())
+//
+//	    // Register the URL shortener's HTTP handlers with the Gin router.
 //	    handlers.RegisterHandlersGin(router, dsClient)
+//
+//	    // Start the HTTP server on port 8080.
 //	    router.Run(":8080")
 //	}
 //
-// The package defines various types to represent request payloads and middleware functions.
-// The `InternalOnly` middleware function enforces access control by requiring a secret
-// value in the request header, which is compared against an environment variable.
+// The package defines various types to encapsulate request payloads and middleware functions.
+// For instance, the `InternalOnly` middleware function enforces access restrictions by matching
+// a secret value in the request header against a predefined environment variable.
 //
-// Handler functions such as `getURLHandlerGin` and `postURLHandlerGin` serve as endpoints
-// for fetching and storing URL mappings, respectively. The `editURLHandlerGin` and
-// `deleteURLHandlerGin` functions provide the logic for updating and deleting mappings.
+// Endpoint handler functions such as `getURLHandlerGin` and `postURLHandlerGin` manage
+// the retrieval and creation of URL mappings. Functions like `editURLHandlerGin` and
+// `deleteURLHandlerGin` handle the updating and deletion of these mappings.
 //
-// The `RegisterHandlersGin` function is the entry point for setting up the routes and
-// associating them with their handlers. It ensures that all routes are prefixed with
-// a base path that can be configured via an environment variable.
+// The `RegisterHandlersGin` function configures the routing for the service, associating
+// endpoints with their respective handler functions and applying any necessary middleware.
+// It also allows for the configuration of a base path for all routes, which can be set
+// through an environment variable.
 //
-// Copyright (c) 2023 H0llyW00dzZ
+// Copyright (c) 2023 by H0llyW00dzZ
 package handlers
