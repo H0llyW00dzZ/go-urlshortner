@@ -9,6 +9,6 @@ const (
 	ComponentCache             = "cache" // Currently unused.
 	ComponentProjectIDENV      = "projectid"
 	ComponentInternalSecretENV = "customsecretkey"
-	ComponentMachineOperation  = "signal" // Currently unused.
+	ComponentMachineOperation  = "signal_notify"
 	ComponentGopher            = "hostmachine"
 )
