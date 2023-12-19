@@ -15,14 +15,6 @@ import (
 // It is intended to be used by other functions within the package for logging purposes.
 var Logger *zap.Logger
 
-// basePath is a package-level variable to store the base path for the handlers.
-// It is set once during package initialization.
-var basePath string
-
-// internalSecretValue is a package-level variable that stores the secret value required by the InternalOnly middleware.
-// It is set once during package initialization.
-var internalSecretValue string
-
 // SetLogger sets the logger instance for the package.
 func SetLogger(logger *zap.Logger) {
 	Logger = logger
@@ -181,6 +173,15 @@ func logBadRequest(c *gin.Context, id string, err *BadRequestError) {
 	logInfoWithEmoji(constant.ErrorEmoji+"  "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestJSONBinding, fields...)
 	c.JSON(http.StatusBadRequest, gin.H{
 		constant.HeaderResponseError: constant.HeaderResponseInvalidRequestPayload,
+	})
+}
+
+// logDeletionOtherError logs and responds for other deletion errors.
+func logDeletionOtherError(c *gin.Context, id string, err error) {
+	logFields := createDeletionLogFields(id, err)
+	Logger.Error(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji, logFields...)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		constant.HeaderResponseError: err.Error(),
 	})
 }
 
