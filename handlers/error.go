@@ -83,24 +83,33 @@ func handleUpdateError(c *gin.Context, id string, err error) {
 }
 
 // handleDeletionError handles errors that occur during the URL deletion process.
-// Note this function `handleDeletionError` has maximum of 5 cyclomatic complexity so can't add another case here,
-// because I don't have idea anymore for this function to reduce the cyclomatic complexity :v
 func handleDeletionError(c *gin.Context, err error) {
 	id := c.Param(constant.HeaderID)
-	switch {
-	case err == datastore.ErrNotFound:
-		logNotFound(c, id) // Pass the context and id instead of err.Error()
-		// This is a client error, so we should return a 400 status code.
-	case isMismatchError(err):
-		logMismatchError(c, id) // Pass the context and id instead of err.Error()
-	case isBadRequestError(err):
-		// This is also a client error bad request, so we should return a 400 status code.
-		// Return a BadRequestError if JSON binding fails
-		// Friendly error message for the user, and the original error for logging purposes
-		logBadRequest(c, id) // Pass the context and id instead of err.Error()
-	case isURLMismatchError(err): // This checks for the specific URL mismatch error
-		logURLMismatchError(c, id, err)
+
+	if err == datastore.ErrNotFound {
+		logNotFound(c, id)
+		return
 	}
+	if urlMismatchErr, ok := err.(*URLMismatchError); ok {
+		logURLMismatchError(c, id, urlMismatchErr)
+		return
+	}
+	if badRequestErr, ok := err.(*BadRequestError); ok {
+		logBadRequest(c, id, badRequestErr)
+		return
+	}
+
+	// Handle other errors
+	logDeletionOtherError(c, id, err)
+}
+
+// logDeletionOtherError logs and responds for other deletion errors.
+func logDeletionOtherError(c *gin.Context, id string, err error) {
+	logFields := createDeletionLogFields(id, err)
+	Logger.Error(constant.ErrorEmoji+"  "+constant.UrlshortenerEmoji, logFields...)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		constant.HeaderResponseError: err.Error(),
+	})
 }
 
 // SynclogError ensures that each error is logged only once.
@@ -122,9 +131,9 @@ func SyncerrorLogged(c *gin.Context) bool {
 
 // logSpecificError logs the error based on its type.
 func SynclogSpecificError(c *gin.Context, operation string, err error) {
-	switch err.(type) {
+	switch e := err.(type) {
 	case *BadRequestError:
-		logBadRequest(c, operation) // Pass the operation name to the logging function.
+		logBadRequest(c, operation, e) // Pass the BadRequestError to the logging function.
 	default:
 		SynclogOtherError(c, operation, err) // Pass the operation name to the logging function.
 	}
@@ -162,10 +171,9 @@ func handleError(c *gin.Context, message string, statusCode int, err error) {
 	var emoji string
 
 	// Check if the error is a BadRequestError and unwrap it if it is
-	if badRequestErr, ok := err.(*logmonitor.BadRequestError); ok {
-		message = badRequestErr.UserMessage
-		statusCode = http.StatusBadRequest
-		err = badRequestErr.Err
+	if badRequestErr, ok := err.(*BadRequestError); ok {
+		logBadRequest(c, id, badRequestErr)
+		return
 	}
 
 	// Use different emojis based on the status code
