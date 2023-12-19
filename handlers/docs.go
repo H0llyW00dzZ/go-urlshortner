@@ -10,7 +10,7 @@
 // Consistent and structured logging is maintained across the package using the logmonitor package,
 // which aids in the systematic recording of operational events for ease of debugging and service monitoring.
 //
-// Example of package usage:
+// # Example of package usage:
 //
 //	func main() {
 //	    // Initialize a Gin router.
@@ -33,9 +33,9 @@
 //
 // The package defines various types to encapsulate request payloads and middleware functions:
 //
-// - CreateURLPayload: Represents the JSON payload for creating a new shortened URL, containing the original URL.
-// - UpdateURLPayload: Represents the JSON payload for updating an existing shortened URL, containing the original and new URLs along with an identifier.
-// - DeleteURLPayload: Represents the JSON payload for deleting a shortened URL, containing the URL and its identifier.
+//   - CreateURLPayload: Represents the JSON payload for creating a new shortened URL, containing the original URL.
+//   - UpdateURLPayload: Represents the JSON payload for updating an existing shortened URL, containing the original and new URLs along with an identifier.
+//   - DeleteURLPayload: Represents the JSON payload for deleting a shortened URL, containing the URL and its identifier.
 //
 // The following code snippets illustrate the structures of these types:
 //
@@ -59,9 +59,9 @@
 //
 // The package also exports several key values:
 //
-// - Logger: A *zap.Logger instance used for structured logging throughout the package.
-// - basePath: A string representing the base path for the URL shortener's endpoints.
-// - internalSecretValue: A string used by the InternalOnly middleware to validate requests against internal services.
+//   - Logger: A *zap.Logger instance used for structured logging throughout the package.
+//   - basePath: A string representing the base path for the URL shortener's endpoints.
+//   - internalSecretValue: A string used by the InternalOnly middleware to validate requests against internal services.
 //
 // The following code snippets illustrate the declaration of these values:
 //
@@ -79,6 +79,20 @@
 // endpoints with their respective handler functions and applying any necessary middleware.
 // It also allows for the configuration of a base path for all routes, which can be set
 // through an environment variable.
+//
+// # Bug Fixes and Security Enhancements
+//
+// This section provides an overview of significant bug fixes and security enhancements
+// that have been implemented in the package. The aim is to maintain transparency with
+// users and to demonstrate a commitment to the security and reliability of the service.
+//
+//   - Version 0.3.2:
+//     Resolved an Leading to Insecure Direct Object Reference (IDOR) vulnerability that was present
+//     when parsing JSON payloads. Previously, malformed JSON could be used to bypass
+//     payload validation, potentially allowing attackers to modify URLs without proper
+//     verification. The parsing logic has been fortified to ensure that only well-formed,
+//     validated JSON payloads are accepted, and any attempt to submit broken or malicious
+//     JSON will be rejected.
 //
 // Copyright (c) 2023 by H0llyW00dzZ
 package handlers
