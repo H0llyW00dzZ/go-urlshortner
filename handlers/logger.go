@@ -162,11 +162,6 @@ func logURLMismatchError(c *gin.Context, id string, err error) {
 	})
 }
 
-// isBadRequestError checks if the error is a "bad request" situation.
-func isBadRequestError(err error) bool {
-	return strings.Contains(err.Error(), constant.HeaderResponseInvalidRequestPayload)
-}
-
 // logBadRequest handles logging and response for a "bad request" situation.
 func logBadRequest(c *gin.Context, id string, err *BadRequestError) {
 	fields := createLogFields(operation_deleteURL, id)

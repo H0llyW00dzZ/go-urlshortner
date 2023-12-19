@@ -46,6 +46,15 @@ func (e *BadRequestError) Error() string {
 	return e.Message
 }
 
+// isBadRequestError checks if the provided error is of type BadRequestError.
+// It returns true if the error is a BadRequestError, false otherwise.
+// This is useful for type assertions where you need to identify if an error
+// is specifically due to a bad request.
+func isBadRequestError(err error) bool {
+	_, ok := err.(*BadRequestError) // Type assertion to check for isBadRequestError.
+	return ok
+}
+
 // TODO: FriendlyError represents an error that is safe to return to the client & server (middleware).
 type FriendlyError struct {
 	Message string
