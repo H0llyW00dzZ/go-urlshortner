@@ -33,11 +33,8 @@ func isURLMismatchError(err error) bool {
 	return ok
 }
 
-// TODO: Refactor BadRequestError to be used consistently across the application.
-
 // BadRequestError represents an error when the request made by the client
 // contains bad syntax or cannot be fulfilled for some other reason.
-
 type BadRequestError struct {
 	Message string
 }
@@ -45,11 +42,6 @@ type BadRequestError struct {
 // Error returns the error message of a BadRequestError.
 // This method allows BadRequestError to satisfy the error interface,
 // enabling it to be used like any other error.
-// TODO:
-// - Ensure BadRequestError is used in all handlers where bad requests need to be reported.
-// - Update logging functions to handle BadRequestError specifically.
-// - Review all BadRequestError occurrences to ensure the Message field is being used appropriately.
-
 func (e *BadRequestError) Error() string {
 	return e.Message
 }
