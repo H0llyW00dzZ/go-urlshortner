@@ -176,7 +176,7 @@ func isBadRequestError(err error) bool {
 }
 
 // logBadRequest handles logging and response for a "bad request" situation.
-func logBadRequest(c *gin.Context, id string) {
+func logBadRequest(c *gin.Context, id string, err *BadRequestError) {
 	fields := createLogFields(operation_deleteURL, id)
 	logInfoWithEmoji(constant.ErrorEmoji+"  "+constant.WarningEmoji, constant.HeaderResponseInvalidRequestJSONBinding, fields...)
 	c.JSON(http.StatusBadRequest, gin.H{
