@@ -34,3 +34,8 @@ const (
 	HeaderXProto          = "X-Forwarded-Proto"
 	HeaderXinternalSecret = "X-Internal-Secret"
 )
+
+// Define gin context log for different components.
+const (
+	GinContextErrLog = "errorLogged"
+)

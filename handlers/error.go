@@ -116,7 +116,7 @@ func SynclogError(c *gin.Context, operation string, err error) {
 
 // errorLogged checks if the error has already been logged.
 func SyncerrorLogged(c *gin.Context) bool {
-	_, logged := c.Get("errorLogged")
+	_, logged := c.Get(constant.GinContextErrLog)
 	return logged
 }
 
@@ -138,7 +138,10 @@ func SynclogOtherError(c *gin.Context, operation string, err error) {
 
 // markErrorLogged marks the error as logged in the context.
 func markErrorLogged(c *gin.Context) {
-	c.Set("errorLogged", true)
+	// Use constant to indicate that the error has been logged.
+	// and easier to change such as translate to another language.
+	// this how Go programming are pretty good at and other.
+	c.Set(constant.GinContextErrLog, true)
 }
 
 // handleRetrievalError logs an error message for a failed retrieval attempt and returns a formatted error.
