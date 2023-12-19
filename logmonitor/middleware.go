@@ -84,7 +84,7 @@ func WithError(err error) LogFieldOption {
 // WithSignal returns a LogFieldOption that adds a 'signal' field to the log.
 func WithSignal(signal os.Signal) LogFieldOption {
 	return func() zap.Field {
-		return zap.String("signal_notify", signal.String())
+		return zap.String(constant.ComponentMachineOperation, signal.String())
 	}
 }
 
