@@ -11,29 +11,32 @@ import (
 )
 
 // Logger is a global variable to access the zap logger throughout the logmonitor package.
+// It is initialized with a default configuration and can be replaced using SetLogger.
 var Logger *zap.Logger
 
-// SetLogger sets the logger instance for the package.
+// SetLogger sets the logger instance for the package. This function allows for
+// the replacement of the default logger with a customized one, enabling flexibility
+// in logging configurations and output formats.
 func SetLogger(logger *zap.Logger) {
 	Logger = logger
 }
 
-// BadRequestError is a custom error type for bad requests.
+// BadRequestError is a custom error type for bad requests. It includes a user-friendly
+// message and the underlying error, providing context for logging and user feedback.
 type BadRequestError struct {
 	UserMessage string
 	Err         error
 }
 
-// Error returns the message of the underlying error.
-// This method allows BadRequestError to satisfy the error interface.
+// Error returns the message of the underlying error. This method allows BadRequestError
+// to satisfy the error interface, making it compatible with Go's built-in error handling.
 func (e *BadRequestError) Error() string {
 	return e.Err.Error()
 }
 
-// NewBadRequestError creates a new instance of BadRequestError.
-// This function is used to construct an error with a user-friendly message
-// and an underlying error, which can be used to provide detailed error information
-// while also giving a clear message to the end-user.
+// NewBadRequestError creates a new instance of BadRequestError. This function is used
+// to construct an error with a user-friendly message and an underlying error, which can
+// be used to provide detailed error information while also giving a clear message to the end-user.
 func NewBadRequestError(userMessage string, err error) *BadRequestError {
 	return &BadRequestError{
 		UserMessage: userMessage,
@@ -86,12 +89,15 @@ func WithSignal(signal os.Signal) LogFieldOption {
 }
 
 // RequestLogger returns a gin.HandlerFunc (middleware) that logs requests using zap.
-// It is intended to be used as a middleware in a Gin router setup.
+// It captures key metrics for each HTTP or HTTPS request, including the status code, method,
+// path, and processing duration, and outputs them in a structured format. This middleware
+// enhances the observability of the application by providing detailed request logs, which
+// are essential for monitoring and debugging.
 //
 // Upon receiving a request, it logs the following information:
 //   - Machine Start Time (the local time when the request is received by the server)
-//   - HTTP status code of the response
-//   - HTTP method of the request
+//   - HTTP or HTTPS status code of the response
+//   - HTTP or HTTPS method of the request
 //   - Requested path
 //   - Duration taken to process the request
 //
