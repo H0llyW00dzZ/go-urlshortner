@@ -180,6 +180,19 @@ func logDeletionOtherError(c *gin.Context, id string, err error) {
 	})
 }
 
+// logUpdateOtherError logs and responds for other update errors.
+func logUpdateOtherError(c *gin.Context, id string, err error) {
+	logFields := logmonitor.CreateLogFields(operation_editURL,
+		logmonitor.WithComponent(constant.ComponentGopher),
+		logmonitor.WithID(id),
+		logmonitor.WithError(err),
+	)
+	logmonitor.Logger.Error(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToUpdateURLContextLog, logFields...)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
+	})
+}
+
 // createLogFieldsWithErr is a helper to create log fields including an error.
 func createLogFieldsWithErr(operation string, id string, err error) []zap.Field {
 	return logmonitor.CreateLogFields(operation,
