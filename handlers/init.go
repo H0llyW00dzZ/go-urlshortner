@@ -55,15 +55,17 @@ func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) 
 	router.DELETE(basePath+":id", InternalOnly(), deleteURLHandlerGin(datastoreClient)) // New DELETE route for deleting URLs
 }
 
-// generateShortID generates a short identifier for the URL.
+// generateShortID generates a unique short identifier for a URL.
 //
-// The generateShortID function is responsible for generating a unique short ID.
+// This function attempts to generate a unique short ID suitable for use in the datastore.
+// It retries until a unique ID is found. If it cannot generate a unique ID after a predefined
+// number of attempts, it returns an error, potentially indicating an issue with the underlying
+// system or collision space.
 //
-// If the generated ID is not unique, it will keep trying until it finds a unique one,
-// otherwise it will return an error indicate that your machine is bad.
+// Note: This function is specifically tailored for generating unique short IDs for the datastore
+// and may be adapted for other purposes in the future.
 func generateShortID(ctx context.Context, dsClient *datastore.Client) (string, error) {
-
-	id, err := shortid.GenerateUnique(ctx, dsClient, 5)
+	id, err := shortid.GenerateUniqueDataStore(ctx, dsClient, 5)
 	if err != nil {
 		return "", err // If there's an error generating the ID, return it immediately.
 	}

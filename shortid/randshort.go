@@ -18,8 +18,10 @@ func Generate(length int) (string, error) {
 	return generateRandomString(length)
 }
 
-// GenerateUnique creates a unique, cryptographically secure, URL-friendly short ID.
-func GenerateUnique(ctx context.Context, client *datastore.Client, length int) (string, error) {
+// GenerateUniqueDataStore creates a unique, cryptographically secure, URL-friendly short ID.
+//
+// Note: This function has been renamed to GenerateUniqueDataStore to avoid confusion with similarly named 'Generate' functions for other databases in the future.
+func GenerateUniqueDataStore(ctx context.Context, client *datastore.Client, length int) (string, error) {
 	const maxRetries = 1337 // Maximum number of retries to find a unique ID
 	for i := 0; i < maxRetries; i++ {
 		id, err := generateRandomString(length)
