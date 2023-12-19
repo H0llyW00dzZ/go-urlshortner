@@ -240,16 +240,21 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 
 // deleteURL verifies the provided ID and URL against the stored URL entity, and if they match, deletes the URL entity.
 func deleteURL(c *gin.Context, dsClient *datastore.Client, id string, providedURL string) error {
+	// Retrieve the current URL from the datastore.
 	currentURL, err := getCurrentURL(c, dsClient, id)
 	if err != nil {
-		return err // getCurrentURL will return a formatted error or datastore.ErrNotFound
+		// If an error occurs, return it. getCurrentURL will return a formatted error or datastore.ErrNotFound.
+		return err
 	}
 
+	// Check if the current URL matches the provided URL.
 	if currentURL.Original != providedURL {
-		// Return a URLMismatchError instead of a generic error.
+		// If they do not match, return a custom URLMismatchError instead of a generic error (known as default standart library error/fmt error),
+		// which is bad for host machine and datastore when using generic error, it literally break the machine (can't imagine if there is no recovery mode lol).
 		return &URLMismatchError{Message: constant.URLmismatchContextLog}
 	}
 
+	// If the URLs match, perform the deletion operation.
 	return performDelete(c, dsClient, id)
 }
 
