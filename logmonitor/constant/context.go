@@ -1,5 +1,8 @@
 package constant
 
+// Define header response for different components.
+//
+// Note: some constants are not used in the code, indicate that for future use.
 const (
 	URLmismatchContextLog                       = "URL mismatch"
 	URLShorteneredContextLog                    = "URL shortened and saved"
