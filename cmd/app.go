@@ -233,11 +233,30 @@ func cleanupResources(logger *zap.Logger, datastoreClient *datastore.Client) {
 }
 
 func handleStartupFailure(err error, logger *zap.Logger) {
+	// Attempt to assert the error as a *DatastoreError
+	parsedError, parseErr := datastore.ParseDatastoreClientError(err) // Corrected function call
+	if parseErr != nil {
+		fmt.Println("Error parsing DatastoreClientError:", parseErr)
+		os.Exit(1)
+	}
+
+	var logFields []zap.Field
+
+	if parsedError != nil {
+		logFields = logmonitor.CreateLogFields("handleStartupFailure",
+			logmonitor.WithComponent(constant.ComponentGopher),
+			logmonitor.WithAnyZapField(zap.String(constant.DescriptionJsonMetaData, parsedError.Description)),
+			logmonitor.WithAnyZapField(zap.String(constant.DetailsURLJsonMetaData, parsedError.DetailsURL)),
+			logmonitor.WithError(err),
+		)
+	} else {
+		logFields = logmonitor.CreateLogFields("handleStartupFailure",
+			logmonitor.WithComponent(constant.ComponentGopher),
+			logmonitor.WithError(err),
+		)
+	}
+
 	// Log the error using the provided zap.Logger
-	logFields := logmonitor.CreateLogFields("handleStartupFailure",
-		logmonitor.WithComponent(constant.ComponentGopher), // Use the constant ComponentGopher for the component
-		logmonitor.WithError(err),                          // Include the error here, but it will be nil if there's no error
-	)
 	logger.Error(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.StartupFailureContextLog, logFields...)
 
 	// Optionally, print the error using the bannercli package.
