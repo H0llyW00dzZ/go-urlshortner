@@ -239,19 +239,19 @@ func validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error {
 	var req DeleteURLPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
 		SynclogError(c, idFromPath, err) // Log the bad request error
-		return fmt.Errorf(constant.HeaderResponseInvalidRequestPayload+": %v", err)
+		return &BadRequestError{Message: constant.HeaderResponseInvalidRequestPayload}
 	}
 
 	// Check if the IDs match
 	if idFromPath != req.ID {
 		LogMismatchError(idFromPath) // Log the mismatch error
-		return fmt.Errorf(constant.PathIDandPayloadIDDoesnotMatchContextLog)
+		return &URLMismatchError{Message: constant.URLmismatchContextLog}
 	}
 
 	// Validate the URL format.
 	if !isValidURL(req.URL) {
 		LogInvalidURLFormat(req.URL) // Log the invalid URL format error
-		return fmt.Errorf(constant.HeaderResponseInvalidURLFormat)
+		return &BadRequestError{Message: constant.HeaderResponseInvalidURLFormat}
 	}
 
 	// Perform the delete operation.
