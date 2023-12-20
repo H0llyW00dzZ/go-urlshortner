@@ -40,3 +40,9 @@ const (
 	InfoFailedToRetrieveTheCurrentURL           = "Failed to retrieve the current URL for update"
 	InfoOldURLDoesMatchTheCurrentURL            = "Old URL does match the current URL"
 )
+
+// Define JSON metadata for different components.
+const (
+	DescriptionJsonMetaData = "description"
+	DetailsURLJsonMetaData  = "details_url"
+)
