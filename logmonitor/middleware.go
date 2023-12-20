@@ -91,7 +91,9 @@ func WithSignal(signal os.Signal) LogFieldOption {
 // WithAnyZapField returns a LogFieldOption that allows direct use of zap.Field with CreateLogFields.
 // This is useful for adding fields that are not covered by the other With* functions.
 //
-// Example: logmonitor.CreateLogFields("operation hack the planet", WithAnyZapField(zap.Binary("H0llyW00dzZ", []byte("0x1337"))))
+// Example:
+//
+//	logmonitor.CreateLogFields("operation hack the planet", WithAnyZapField(zap.Binary("H0llyW00dzZ", []byte("0x1337"))))
 func WithAnyZapField(field zap.Field) LogFieldOption {
 	return func() zap.Field {
 		return field

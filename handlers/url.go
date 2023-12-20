@@ -7,6 +7,7 @@ import (
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
 
 // getURLHandlerGin returns a Gin handler function that retrieves and redirects to the original
@@ -14,32 +15,20 @@ import (
 // or an error occurs, the handler responds with the appropriate HTTP status code and error message.
 func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Extract the identifier from the request path.
-		id := c.Param(constant.HeaderID)
-
-		// Attempt to retrieve the URL from the datastore using the provided identifier.
-		url, err := datastore.GetURL(c, dsClient, id)
-
-		// Error handling block.
-		if err != nil {
-			// If the URL is not found, log the event and return a 404 Not Found response.
-			if err == datastore.ErrNotFound {
-				// Use the centralized logging function to log the 'URL not found' event.
-				LogURLNotFound(id, err)
-				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-					constant.HeaderResponseError: constant.URLnotfoundContextLog,
-				})
-			} else {
-				// For any other errors, log the internal error event and return a 500 Internal Server Error response.
-				LogInternalError(operation_getURL, id, err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
-				})
-			}
+		// Apply the rate limiter first.
+		if !applyRateLimit(c) {
+			// If the rate limit is exceeded, we should not continue processing the request.
+			logAttemptToRetrieve(id)
 			return
 		}
 
-		// If the retrieved URL is nil, log the error and return a 500 Internal Server Error response.
+		id := c.Param(constant.HeaderID)
+		url, err := datastore.GetURL(c, dsClient, id)
+		if err != nil {
+			handleGetURLError(c, id, err)
+			return
+		}
+
 		if url == nil {
 			LogInternalError(operation_getURL, id, fmt.Errorf(constant.URLisNilContextLog))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -48,12 +37,43 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		// Log the successful retrieval of the URL.
 		LogURLRetrievalSuccess(id)
-
-		// Redirect the client to the original URL associated with the identifier.
 		c.Redirect(http.StatusFound, url.Original)
 	}
+}
+
+// handleGetURLError centralizes the error handling for the getURLHandlerGin function.
+func handleGetURLError(c *gin.Context, id string, err error) {
+	if err == datastore.ErrNotFound {
+		LogURLNotFound(id, err)
+		// Respond with 404 Not Found, as this is the correct status for a missing resource.
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			constant.HeaderResponseError: constant.URLnotfoundContextLog,
+		})
+		// For any other errors, log the internal error event and return a 500 Internal Server Error response.
+	} else {
+		LogInternalError(operation_getURL, id, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
+		})
+	}
+}
+
+// applyRateLimit checks if the rate limit has been exceeded for a given identifier.
+// It writes the appropriate response if the rate limit is exceeded.
+//
+// Note: Better keep set it as response 404 not found for this limiter since it's public access,
+// for indicate that client/user are bad requesting, not the server.
+func applyRateLimit(c *gin.Context) bool {
+	key := c.ClientIP()
+	limiter := NewRateLimiter(key, rate.Limit(5), 10)
+	if !limiter.Allow() {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			constant.HeaderResponseError: constant.HeaderResponseIDandURLNotFound,
+		})
+		return false
+	}
+	return true
 }
 
 // postURLHandlerGin returns a Gin handler function that handles the creation of a new shortened

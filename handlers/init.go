@@ -4,11 +4,13 @@ import (
 	"context"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/H0llyW00dzZ/go-urlshortner/datastore"
 	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
 	"github.com/H0llyW00dzZ/go-urlshortner/shortid"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
 
 // id is a package-level variable to store the ID of the URL.
@@ -21,6 +23,14 @@ var basePath string
 // internalSecretValue is a package-level variable that stores the secret value required by the InternalOnly middleware.
 // It is set once during package initialization.
 var internalSecretValue string
+
+// RateLimiterStore stores the rate limiters for each client, identified by a key such as an IP address.
+//
+// Note: This var are contains filtered in docs indicates that explicit unreadable for human 🏴‍☠️
+var RateLimiterStore = struct {
+	sync.RWMutex
+	limiters map[string]*rate.Limiter
+}{limiters: make(map[string]*rate.Limiter)}
 
 func init() {
 
@@ -70,4 +80,18 @@ func generateShortID(ctx context.Context, dsClient *datastore.Client) (string, e
 		return "", err // If there's an error generating the ID, return it immediately.
 	}
 	return id, nil // If the ID is unique, return it.
+}
+
+// NewRateLimiter creates a new rate limiter for a client if it doesn't exist, or returns the existing one.
+func NewRateLimiter(key string, r rate.Limit, b int) *rate.Limiter {
+	RateLimiterStore.Lock()
+	defer RateLimiterStore.Unlock()
+
+	limiter, exists := RateLimiterStore.limiters[key]
+	if !exists {
+		limiter = rate.NewLimiter(r, b)
+		RateLimiterStore.limiters[key] = limiter
+	}
+
+	return limiter
 }

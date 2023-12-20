@@ -1,26 +1,24 @@
 // Package handlers implements the HTTP or HTTPS handling logic for a URL shortener service.
 // It provides handlers for creating, retrieving, updating, and deleting shortened URLs,
 // leveraging Google Cloud Datastore for persistent storage. The package includes middleware
-// for access control, which ensures that sensitive operations are restricted to internal services.
+// for rate limiting and access control, ensuring that endpoints are protected against abuse
+// and sensitive operations are restricted to internal services.
 //
 // Handlers are registered with the Gin web framework's router, forming the RESTful API of the service.
 // Each handler function is tasked with handling specific HTTP or HTTPS request types, validating payloads,
 // performing operations against the datastore, and crafting the HTTP or HTTPS response.
 //
-// Consistent and structured logging is maintained across the package using the logmonitor package,
-// which aids in the systematic recording of operational events for ease of debugging and service monitoring.
+// Consistent and structured logging is maintained across the package using centralized logging functions,
+// which aid in the systematic recording of operational events for ease of debugging and service monitoring.
 //
-// # Example of package usage:
+// # Example of package usage
 //
 //	func main() {
 //	    // Initialize a Gin router.
 //	    router := gin.Default()
 //
 //	    // Create a new datastore client (assuming a constructor function exists).
-//	    dsClient := datastore.NewClient()
-//
-//	    // Set the logger instance for the handlers package.
-//	    Logger = logmonitor.NewLogger()
+//	    dsClient := datastore.NewClient(context.Background(), "example-project-id-0x1337")
 //
 //	    // Register the URL shortener's HTTP handlers with the Gin router.
 //	    RegisterHandlersGin(router, dsClient)
@@ -29,7 +27,7 @@
 //	    router.Run(":8080")
 //	}
 //
-// # Types and Variables values
+// # Types and Variables
 //
 // The package defines various types to encapsulate request payloads and middleware functions:
 //
@@ -55,19 +53,19 @@
 //	}
 //
 // Middleware functions such as InternalOnly enforce access control by requiring a secret
-// value in the request header, compared against an environment Variables variable.
+// value in the request header, compared against an environment variable.
 //
-// # The package also exports several key values:
+// # The package also exports several key variables
 //
-//   - Logger: A *zap.Logger instance used for structured logging throughout the package.
 //   - basePath: A string representing the base path for the URL shortener's endpoints.
 //   - internalSecretValue: A string used by the InternalOnly middleware to validate requests against internal services.
+//   - RateLimiterStore: A sync.Map that stores rate limiters for each client IP address.
 //
-// # The following code snippets illustrate the declaration of these Variables values:
+// # The following code snippets illustrate the declaration of these variables
 //
-//	var Logger *zap.Logger
 //	var basePath string
 //	var internalSecretValue string
+//	var RateLimiterStore sync.Map
 //
 // # Handler Functions
 //
@@ -77,8 +75,8 @@
 //
 //   - getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc:
 //     Retrieves the original URL based on the short identifier provided in the request path
-//     and redirects the client to it. Responds with HTTP 404 if the URL is not found, or
-//     HTTP 500 for other errors.
+//     and redirects the client to it. Responds with HTTP 404 if the URL is not found, HTTP 429 if rate limit is exceeded,
+//     or HTTP 500 for other errors.
 //
 //   - postURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc:
 //     Handles the creation of a new shortened URL. It expects a JSON payload with the original
@@ -95,44 +93,16 @@
 // Each handler function utilizes the provided datastore client to interact with Google Cloud
 // Datastore and leverages structured logging for operational events.
 //
-// # The following helper functions are used within the handlers to perform specific tasks:
+// # Helper Functions
 //
-//   - validateUpdateRequest(c *gin.Context) (string, UpdateURLPayload, error):
-//     Validates the update request and extracts the path ID and request payload.
-//
-//   - updateURL(c *gin.Context, dsClient *datastore.Client, id string, req UpdateURLPayload) error:
-//     Retrieves the current URL, verifies it, and updates it with the new URL.
-//
-//   - respondWithUpdatedURL(c *gin.Context, id string):
-//     Constructs and sends a JSON response with the updated URL information.
-//
-//   - extractURL(c *gin.Context) (string, error):
-//     Extracts the original URL from the JSON payload in the request.
-//
-//   - validateAndDeleteURL(c *gin.Context, dsClient *datastore.Client) error:
-//     Validates the ID and URL and performs the deletion if they are correct.
-//
-//   - deleteURL(c *gin.Context, dsClient *datastore.Client, id string, providedURL string) error:
-//     Verifies the provided ID and URL against the stored URL entity and deletes it if they match.
-//
-//   - getCurrentURL(c *gin.Context, dsClient *datastore.Client, id string) (*datastore.URL, error):
-//     Retrieves the current URL from the datastore and checks for errors.
-//
-//   - performDelete(c *gin.Context, dsClient *datastore.Client, id string) error:
-//     Deletes the URL entity from the datastore.
-//
-//   - saveURL(c *gin.Context, dsClient *datastore.Client, id string, originalURL string) error:
-//     Saves the URL and its identifier to the datastore.
-//
-// These functions are integral to the handlers' logic, facilitating validation, data retrieval,
-// and response generation. They ensure that the handlers remain focused on HTTP-specific logic
-// while delegating datastore interactions and other operations to specialized functions.
+// The package contains a variety of helper functions that support the primary handler functions.
+// These helpers perform tasks such as request validation, data retrieval, rate limiting, and response generation.
 //
 // # Middleware
 //
-// The package also includes middleware functions that provide additional layers of request
-// processing, such as access control. These middleware functions are applied to certain
-// handler functions to enforce security policies and request validation.
+// The package includes middleware functions that provide additional layers of request
+// processing, such as rate limiting and access control. These middleware functions are
+// applied to certain handler functions to enforce security policies and request validation.
 //
 //   - InternalOnly():
 //     A middleware function that restricts access to certain endpoints to internal services
@@ -148,10 +118,10 @@
 // and applies any necessary middleware.
 //
 //	func RegisterHandlersGin(router *gin.Engine, dsClient *datastore.Client) {
-//	    router.GET("/:id", getURLHandlerGin(dsClient))
-//	    router.POST("/", postURLHandlerGin(dsClient))
-//	    router.PUT("/:id", editURLHandlerGin(dsClient))
-//	    router.DELETE("/:id", deleteURLHandlerGin(dsClient))
+//	    router.GET(basePath+":id", getURLHandlerGin(dsClient))
+//	    router.POST(basePath, InternalOnly(), postURLHandlerGin(dsClient))
+//	    router.PUT(basePath+":id", InternalOnly(), editURLHandlerGin(dsClient))
+//	    router.DELETE(basePath+":id", InternalOnly(), deleteURLHandlerGin(dsClient))
 //	}
 //
 // The RegisterHandlersGin function is the central point for configuring the routing
@@ -163,8 +133,8 @@
 // that have been implemented in the package. The aim is to maintain transparency with
 // users and to demonstrate a commitment to the security and reliability of the service.
 //
-//   - Version 0.3.2:
-//     Resolved an Leading to Insecure Direct Object Reference (IDOR) vulnerability that was present
+//   - Version 0.3.2 (Include Latest):
+//     Resolved an issue leading to Insecure Direct Object Reference (IDOR) vulnerability that was present
 //     when parsing JSON payloads. Previously, malformed JSON could be used to bypass
 //     payload validation, potentially allowing attackers to modify URLs without proper
 //     verification. The parsing logic has been fortified to ensure that only well-formed,
