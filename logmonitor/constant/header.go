@@ -18,6 +18,7 @@ const (
 	HeaderResponseFailedtoGenerateID        = "Failed to generate ID"
 	HeaderResponseFailedtoSaveURL           = "Failed to save URL"
 	HeaderResponseStatus                    = "status"
+	HeaderResponseRateLimitExceeded         = "Too many requests, please try again later."
 )
 
 // Define header request for different components.
