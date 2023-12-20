@@ -9,39 +9,35 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Worker interacts with the Kubernetes API and sends results to a channel.
+// / Worker performs health checks on all pods in the given namespace and sends the results to a channel.
 func Worker(clientset *kubernetes.Clientset, namespace string, results chan<- string) {
+	// Retrieve a list of all pods in the specified namespace.
 	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		results <- fmt.Sprintf("Error: %v", err)
 		return
 	}
 
+	// Perform health checks on each pod and send the results over the channel.
 	for _, pod := range pods.Items {
-		// Perform a basic health check on the pod.
 		healthStatus := NotHealthyStatus
 		if isPodHealthy(&pod) {
 			healthStatus = HealthyStatus
 		}
-
-		// Send the pod name, status, and health to the results channel.
 		results <- fmt.Sprintf(PodAndStatusAndHealth, pod.Name, pod.Status.Phase, healthStatus)
 	}
 }
 
-// isPodHealthy checks if a pod is considered "healthy" (i.e., if it's running and all containers are ready).
+// isPodHealthy determines if a pod is considered "healthy" based on its phase and container statuses.
 func isPodHealthy(pod *corev1.Pod) bool {
-	// Check if the pod is in the 'Running' phase.
+	// A pod is considered healthy if it's running and all of its containers are ready.
 	if pod.Status.Phase != corev1.PodRunning {
 		return false
 	}
-
-	// Check if all containers in the pod are ready.
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if !containerStatus.Ready {
 			return false
 		}
 	}
-
 	return true
 }
