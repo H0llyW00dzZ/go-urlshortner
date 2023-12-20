@@ -46,9 +46,10 @@ type DatastoreError struct {
 // This method formats the DatastoreError into a string, including the details URL if present.
 func (e *DatastoreError) Error() string {
 	if e.DetailsURL != "" {
-		return fmt.Sprintf("Code: %s, Description: %s, Details: %s", e.Code, e.Description, e.DetailsURL)
+		// Assuming ObjCode, ObjDescription, and ObjDetails are constants that hold some string values.
+		return fmt.Sprintf("%s: %s, %s: %s, %s: %s", ObjCode, e.Code, ObjDescription, e.Description, ObjDetails, e.DetailsURL)
 	}
-	return fmt.Sprintf("Code: %s, Description: %s", e.Code, e.Description)
+	return fmt.Sprintf("%s: %s, %s: %s", ObjCode, e.Code, ObjDescription, e.Description)
 }
 
 // MarshalJSON ensures that the DatastoreError is marshaled correctly.
@@ -99,7 +100,7 @@ func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error)
 	cloudClient, err := cloudDatastore.NewClient(ctx, config.ProjectID)
 	if err != nil {
 		// Create structured log fields using logmonitor
-		logFields := logmonitor.CreateLogFields("CreateDatastoreClient",
+		logFields := logmonitor.CreateLogFields(operation_CreateDatastoreClient,
 			logmonitor.WithComponent(constant.ComponentNoSQL), // Use the constant for the component
 			logmonitor.WithError(err),                         // Include the error here, but it will be nil if there's no error
 		)
@@ -232,7 +233,7 @@ func ParseDatastoreClientError(err error) (*DatastoreError, error) {
 // It looks for an "http" substring and assumes that the URL is the last part of the error message.
 // The function returns the extracted URL or an empty string if no URL is found.
 func extractDetailsURL(errorMessage string) string {
-	if strings.Contains(errorMessage, "http") {
+	if strings.Contains(errorMessage, http) {
 		parts := strings.Fields(errorMessage)
 		return strings.Trim(parts[len(parts)-1], "\"") // Assuming the URL is the last part.
 	}
@@ -243,7 +244,7 @@ func extractDetailsURL(errorMessage string) string {
 // It looks for known error patterns in the error message and sets the appropriate description
 // and details in the DatastoreError. The function returns the updated DatastoreError.
 func checkForSpecificError(errorMessage string, datastoreErr *DatastoreError) *DatastoreError {
-	if strings.Contains(errorMessage, "invalid_grant") {
+	if strings.Contains(errorMessage, invalid_grant) {
 		datastoreErr.Description = DataStoreAuthInvalidToken
 		datastoreErr.Details = errorMessage
 	}
