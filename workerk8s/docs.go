@@ -14,13 +14,14 @@
 //     sends the results to a channel for collection and further processing. It respects
 //     the context passed to it for cancellation or timeouts.
 //   - RunWorkers: Starts a specified number of worker goroutines that call the Worker function
-//     with a given namespace and collects the results from all workers into a slice of strings.
+//     with a given namespace. It returns a channel for results and a function to initiate
+//     a graceful shutdown of the workers.
 //
 // # Usage
 //
 // To use this package, first create a Kubernetes client by calling NewKubernetesClient.
 // Then, use the client to run worker goroutines with RunWorkers, specifying the number
-// of workers and the namespace you want to target.
+// of workers, the namespace you want to target, and a context for cancellation.
 //
 // # Example
 //
@@ -29,8 +30,14 @@
 //	    // Handle error
 //	}
 //	namespace := "default" // Replace with your namespace
-//	results := workerk8s.RunWorkers(clientset, 5, namespace)
-//	for _, result := range results {
+//	ctx := context.Background() // Use context to control worker lifetimes
+//	results, shutdown := workerk8s.RunWorkers(ctx, clientset, namespace, 5)
+//
+//	// Do other work, then initiate graceful shutdown when needed.
+//	shutdown()
+//
+//	// Process results until the results channel is closed.
+//	for result := range results {
 //	    fmt.Println(result)
 //	}
 //
@@ -38,9 +45,7 @@
 //
 //   - Implement error handling and retry logic within the Worker function to handle transient errors.
 //   - Enhance the Worker function to perform a more specific task or to be more configurable.
-//   - Consider adding a function to clean up resources or to gracefully shut down the workers.
 //   - Expand the package to support other Kubernetes resources and operations.
-//   - Add context parameter to RunWorkers to control the lifetime of worker operations and allow for shutdown signals.
 //
 // Copyright (c) 2023 by H0llyW00dzZ
 package workerk8s
