@@ -35,18 +35,18 @@ var RateLimiterStore = struct {
 func init() {
 
 	// Initialize the base path from an environment variable or use "/" as default.
-	basePath = os.Getenv("CUSTOM_BASE_PATH")
+	basePath = os.Getenv(CUSTOM_BASE_PATH)
 	if basePath == "" {
-		basePath = "/"
+		basePath = PathObjectBasePath
 	}
 	// Ensure the basePath is correctly formatted.
-	if !strings.HasSuffix(basePath, "/") {
-		basePath += "/"
+	if !strings.HasSuffix(basePath, PathObjectBasePath) {
+		basePath += PathObjectBasePath
 	}
 
 	// Initialize the internal secret value from an environment variable.
 	// Note: This is important and secure because it resides deep within the binary internals and should not be left unset in production.
-	internalSecretValue = os.Getenv("INTERNAL_SECRET_VALUE")
+	internalSecretValue = os.Getenv(INTERNAL_SECRET_VALUE)
 	if internalSecretValue == "" {
 		panic(constant.InternelSecretEnvContextLog)
 	}
@@ -59,10 +59,10 @@ func RegisterHandlersGin(router *gin.Engine, datastoreClient *datastore.Client) 
 	// Register handlers with the custom or default base path.
 	// For example, if CUSTOM_BASE_PATH is "/api/", the GET route will be "/api/:id",
 	// the POST route will be "/api/", and the PUT route will be "/api/:id".
-	router.GET(basePath+":id", getURLHandlerGin(datastoreClient))
+	router.GET(basePath+PathObjectID, getURLHandlerGin(datastoreClient))
 	router.POST(basePath, InternalOnly(), postURLHandlerGin(datastoreClient))
-	router.PUT(basePath+":id", InternalOnly(), editURLHandlerGin(datastoreClient))      // New PUT route for editing URLs
-	router.DELETE(basePath+":id", InternalOnly(), deleteURLHandlerGin(datastoreClient)) // New DELETE route for deleting URLs
+	router.PUT(basePath+PathObjectID, InternalOnly(), editURLHandlerGin(datastoreClient))      // New PUT route for editing URLs
+	router.DELETE(basePath+PathObjectID, InternalOnly(), deleteURLHandlerGin(datastoreClient)) // New DELETE route for deleting URLs
 }
 
 // generateShortID generates a unique short identifier for a URL.

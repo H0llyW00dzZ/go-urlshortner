@@ -27,8 +27,18 @@ const (
 	InfoUpdateSuccessful                 = "URL updated successfully in the datastore"
 )
 
-// Define error constants.
+// Define error object constants.
 const (
 	noerrortoparse        = "no error to parse"
 	unexpectederrorformat = "unexpected error format"
+	invalid_grant         = "invalid_grant"
+	http                  = "http"
+	ObjCode               = "Code"
+	ObjDescription        = "Description"
+	ObjDetails            = "Details"
+)
+
+// Define operation constants.
+const (
+	operation_CreateDatastoreClient = "CreateDatastoreClient"
 )

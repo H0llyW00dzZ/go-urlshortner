@@ -24,3 +24,11 @@ const (
 	operation_shorten_url           = "shorten_url"
 	operation_url_mismatch_error    = "url_mismatch_error"
 )
+
+// Define Internal Object
+const (
+	PathObjectID          = ":id"
+	PathObjectBasePath    = "/"
+	CUSTOM_BASE_PATH      = "CUSTOM_BASE_PATH"
+	INTERNAL_SECRET_VALUE = "INTERNAL_SECRET_VALUE"
+)
