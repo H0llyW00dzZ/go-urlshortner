@@ -8,30 +8,33 @@ import (
 )
 
 // RunWorkers starts the specified number of worker goroutines to perform health checks on pods and collects their results.
-func RunWorkers(ctx context.Context, clientset *kubernetes.Clientset, numWorkers int, namespace string) []string {
+// It returns a channel to receive the results and a function to trigger a graceful shutdown.
+func RunWorkers(ctx context.Context, clientset *kubernetes.Clientset, namespace string, workerCount int) (<-chan string, func()) {
 	results := make(chan string)
-	var collectedResults []string
 	var wg sync.WaitGroup
 
-	// Start worker goroutines.
-	for i := 0; i < numWorkers; i++ {
+	shutdownCtx, cancelFunc := context.WithCancel(ctx)
+
+	// Start the specified number of worker goroutines.
+	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			Worker(ctx, clientset, namespace, results)
+			Worker(shutdownCtx, clientset, namespace, results)
 		}()
 	}
 
-	// Collect results from the workers in a separate goroutine to avoid blocking.
-	go func() {
-		for result := range results {
-			collectedResults = append(collectedResults, result)
-		}
-	}()
+	// Shutdown function to be called to initiate a graceful shutdown.
+	shutdown := func() {
+		// Signal all workers to stop by cancelling the context.
+		cancelFunc()
 
-	// Wait for all workers to finish.
-	wg.Wait()
-	close(results) // Safe to close the channel here since all workers are done.
+		// Wait for all workers to finish.
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
+	}
 
-	return collectedResults
+	return results, shutdown
 }
