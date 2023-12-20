@@ -7,8 +7,10 @@ const (
 	ErrorDeletingPod       = "error deleting pod: %w"
 	ErrorGettingPod        = "error getting pod: %w"
 	ErrorPodNotFound       = "pod not found"
+	ErrorRetrievingPods    = "Error retrieving pods: %w"
 	PodAndStatus           = "Pod: %s, Status: %s"
 	PodAndStatusAndHealth  = "Pod: %s, Status: %s, Health: %s"
 	NotHealthyStatus       = "Not Healthy"
 	HealthyStatus          = "Healthy"
+	WorkerCancelled        = "Worker cancelled: %v"
 )
