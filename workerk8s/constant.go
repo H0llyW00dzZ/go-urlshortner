@@ -1,11 +1,11 @@
 package workerk8s
 
 const (
-	errorlistingspods      = "error listing pods: %w"
-	errorupdatingpodlabels = "error updating pod labels: %w"
-	errorcreatingpod       = "error creating pod: %w"
-	errordeletingpod       = "error deleting pod: %w"
-	errorgettingpod        = "error getting pod: %w"
+	ErrorListingPods       = "error listing pods: %w"
+	ErrorUpdatingPodLabels = "error updating pod labels: %w"
+	ErrorCreatingPod       = "error creating pod: %w"
+	ErrorDeletingPod       = "error deleting pod: %w"
+	ErrorGettingPod        = "error getting pod: %w"
 	ErrorPodNotFound       = "pod not found"
 	PodAndStatus           = "Pod: %s, Status: %s"
 	PodAndStatusAndHealth  = "Pod: %s, Status: %s, Health: %s"

@@ -17,5 +17,7 @@ func RunWorkers(clientset *kubernetes.Clientset, numWorkers int, namespace strin
 		collectedResults = append(collectedResults, <-results)
 	}
 
+	close(results) // Close the channel when all results have been collected
+
 	return collectedResults
 }
