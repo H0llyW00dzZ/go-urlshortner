@@ -21,23 +21,23 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 			return
 		}
 
-		id := c.Param(constant.HeaderID)
-		logAttemptToRetrieve(id) // Pass Context Log
-		url, err := datastore.GetURL(c, dsClient, id)
+		id := c.Param(constant.HeaderID) // Use a string directly if it's not a constant that changes.
+		logAttemptToRetrieve(id)         // Pass Context Log
+
+		url, err := datastore.GetURL(c.Request.Context(), dsClient, id) // Use the request's context
 		if err != nil {
-			handleGetURLError(c, id, err)
+			handleGetURLError(c, id, err) // Assuming this is a function that handles errors
 			return
 		}
 
 		if url == nil {
-			LogInternalError(operation_getURL, id, fmt.Errorf(constant.URLisNilContextLog))
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				constant.HeaderResponseError: constant.HeaderResponseInternalServerError,
-			})
+			// It's usually better to log the internal error inside the LogInternalError function
+			LogInternalError(operation_getURL, id, err) // Assuming this is a function that logs the error
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{constant.HeaderResponseError: constant.HeaderResponseInternalServerError})
 			return
 		}
 
-		LogURLRetrievalSuccess(id)
+		LogURLRetrievalSuccess(id) // Assuming this is a function that logs the success
 		c.Redirect(http.StatusFound, url.Original)
 	}
 }
@@ -66,10 +66,10 @@ func handleGetURLError(c *gin.Context, id string, err error) {
 // for indicate that client/user are bad requesting, not the server.
 func applyRateLimit(c *gin.Context) bool {
 	key := c.ClientIP()
-	limiter := NewRateLimiter(key, rate.Limit(5), 10)
+	limiter := NewRateLimiter(key, rate.Limit(1), 10)
 	if !limiter.Allow() {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			constant.HeaderResponseError: constant.HeaderResponseIDandURLNotFound,
+			constant.HeaderResponseError: constant.URLnotfoundContextLog,
 		})
 		return false
 	}
