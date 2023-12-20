@@ -25,6 +25,8 @@ var basePath string
 var internalSecretValue string
 
 // RateLimiterStore stores the rate limiters for each client, identified by a key such as an IP address.
+//
+// Note: This var are contains filtered in docs indicates that explicit 🏴‍☠️
 var RateLimiterStore = struct {
 	sync.RWMutex
 	limiters map[string]*rate.Limiter
