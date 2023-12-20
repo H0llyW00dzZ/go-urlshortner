@@ -3,68 +3,56 @@
 // updating, and deleting URL entities. It is designed to work with the URL shortener
 // service to manage shortened URLs and their corresponding original URLs.
 //
-// # Types:
+// # Types
 //
-// The Client type is a wrapper around the Google Cloud Datastore client that
-// provides additional methods for URL entity management. It abstracts away the
-// underlying datastore implementation details.
+//   - Client: Wraps the Google Cloud Datastore client and provides methods for URL entity management.
+//   - URL: Represents a URL entity within the datastore with fields for the original URL and a unique identifier.
+//   - DatastoreError: Represents structured errors from the Datastore client, including an error code, description, and optional details or URL.
 //
-//	type Client struct {
-//	    *cloudDatastore.Client
-//	}
+// # Variables
 //
-// The URL type represents a URL entity within the datastore, with fields for the
-// original URL and a unique identifier.
+//   - ErrNotFound: An error representing the absence of a URL entity in the datastore.
+//   - Logger: A package-level variable for consistent logging. It should be set using SetLogger before using logging functions.
 //
-//	type URL struct {
-//	    Original string `datastore:"original"` // The original URL.
-//	    ID       string `datastore:"id"`       // The unique identifier for the shortened URL.
-//	}
+// # Handler Functions
 //
-// # Variables:
+// The package offers functions for datastore operations:
+//   - CreateDatastoreClient: Initializes and returns a new datastore client.
+//   - SaveURL: Saves a URL entity to the datastore.
+//   - GetURL: Retrieves a URL entity from the datastore by ID.
+//   - UpdateURL: Updates an existing URL entity in the datastore.
+//   - DeleteURL: Deletes a URL entity from the datastore by ID.
+//   - CloseClient: Closes the datastore client and releases resources.
+//   - ParseDatastoreClientError: Parses errors from the Datastore client into a structured format.
 //
-// The package exposes an ErrNotFound variable, which is an error that represents
-// the absence of a URL entity in the datastore.
+// # Example Usage
 //
-//	var ErrNotFound = errors.New("no such entity")
-//
-// The package also includes a package-level Logger variable, which is intended to
-// be used across the datastore package for consistent logging.
-//
-//	var Logger *zap.Logger
-//
-// # Handlers Functions:
-//
-// The package provides functions to handle datastore operations. These functions
-// include creating a new client, saving, retrieving, updating, and deleting URL
-// entities.
-//
-//	func CreateDatastoreClient(ctx context.Context, config *Config) (*Client, error)
-//	func SaveURL(ctx context.Context, client *Client, url *URL) error
-//	func GetURL(ctx context.Context, client *Client, id string) (*URL, error)
-//	func UpdateURL(ctx context.Context, client *Client, id string, newURL string) error
-//	func DeleteURL(ctx context.Context, client *Client, id string) error
-//	func CloseClient(client *Client) error
-//
-// # Example of package usage:
+// The following example demonstrates how to initialize a datastore client, save a URL entity,
+// and retrieve it using the package's functions:
 //
 //	func main() {
 //	    logger, _ := zap.NewDevelopment()
+//	    defer logger.Sync()
+//
 //	    ctx := datastore.CreateContext()
 //	    config := datastore.NewConfig(logger, "my-project-id")
 //	    client, err := datastore.CreateDatastoreClient(ctx, config)
 //	    if err != nil {
 //	        logger.Fatal("Failed to create datastore client", zap.Error(err))
 //	    }
-//	    defer datastore.CloseClient(client)
+//	    defer func() {
+//	        if err := datastore.CloseClient(client); err != nil {
+//	            logger.Error("Failed to close datastore client", zap.Error(err))
+//	        }
+//	    }()
 //
-//	    // Use the client to interact with the datastore
+//	    // Use the client to save a new URL entity
 //	    url := &datastore.URL{Original: "https://example.com", ID: "abc123"}
 //	    if err := datastore.SaveURL(ctx, client, url); err != nil {
 //	        logger.Fatal("Failed to save URL", zap.Error(err))
 //	    }
 //
-//	    // Retrieve, update, or delete URLs as needed
+//	    // Retrieve the URL entity by ID
 //	    retrievedURL, err := datastore.GetURL(ctx, client, "abc123")
 //	    if err != nil {
 //	        logger.Error("Failed to retrieve URL", zap.Error(err))
@@ -73,16 +61,18 @@
 //	    }
 //	}
 //
-// The package functions are designed to be used in a concurrent environment and are
-// safe for use by multiple goroutines.
+// # Concurrency
 //
-// The CreateContext function is provided to create a new context for datastore
-// operations, which can be used to control the lifetime of requests and to pass
-// cancellation signals and other request-scoped values across API boundaries.
+// The package functions are designed for concurrent use and are safe for use by multiple goroutines.
 //
-// It is important to close the datastore client when it is no longer needed by
-// calling the CloseClient function to release any resources associated with the
-// client.
+// # Contexts
+//
+// The CreateContext function is provided for creating new contexts for datastore operations,
+// allowing for request lifetime control and value passing across API boundaries.
+//
+// # Cleanup
+//
+// It is important to close the datastore client with CloseClient to release resources.
 //
 // Copyright (c) 2023 by H0llyW00dzZ
 package datastore

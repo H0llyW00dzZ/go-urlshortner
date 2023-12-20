@@ -15,6 +15,7 @@ const (
 	DataStoreFailedtoUpdateURL    = "Failed to update URL"
 	DataStoreFailedtoDeleteURL    = "Failed to delete URL"
 	DataStoreFailedToCloseClient  = "Failed to close client"
+	DataStoreAuthInvalidToken     = "reauthentication required due to invalid token."
 
 	// DataStoreNameKey is the name of the Kind in Datastore for URL entities.
 	// Defining it here enables changing the Kind name in one place if needed.
@@ -24,4 +25,10 @@ const (
 	InfoAttemptingToUpdateURLInDatastore = "Attempting to update URL in Datastore"
 	InfoFailedToUpdateURLInDatastore     = "Failed to update URL in Datastore"
 	InfoUpdateSuccessful                 = "URL updated successfully in the datastore"
+)
+
+// Define error constants.
+const (
+	noerrortoparse        = "no error to parse"
+	unexpectederrorformat = "unexpected error format"
 )
