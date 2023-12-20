@@ -46,3 +46,9 @@ const (
 	DescriptionJsonMetaData = "description"
 	DetailsURLJsonMetaData  = "details_url"
 )
+
+// Define log message for middleware components.
+const (
+	TimestampFormat = "2006/01/02 - 15:04:05"
+	RequestDetails  = "Request Details"
+)

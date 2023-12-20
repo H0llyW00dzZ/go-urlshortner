@@ -119,7 +119,7 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 		// Start timer to track the duration of the request processing.
 		start := time.Now()
 		// Format the start time as a string in the desired format.
-		startTimeFormatted := start.Format("2006/01/02 - 15:04:05")
+		startTimeFormatted := start.Format(constant.TimestampFormat)
 
 		// Process the request by calling the next handler in the chain.
 		c.Next()
@@ -137,7 +137,7 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 
 		// Log details of the request with zap, including the emoji.
 		// Here we add the K8sEmoji to the log message.
-		logger.Info(constant.K8sEmoji+"  "+statusEmoji+"  Request Details",
+		logger.Info(constant.K8sEmoji+"  "+statusEmoji+"  "+constant.RequestDetails,
 			zap.String("hostmachine_start_time", startTimeFormatted),
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
