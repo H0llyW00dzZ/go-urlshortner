@@ -50,6 +50,7 @@ func handleGetURLError(c *gin.Context, id string, err error) {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 			constant.HeaderResponseError: constant.URLnotfoundContextLog,
 		})
+		// For any other errors, log the internal error event and return a 500 Internal Server Error response.
 	} else {
 		LogInternalError(operation_getURL, id, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
