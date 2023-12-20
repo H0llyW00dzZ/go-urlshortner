@@ -22,7 +22,6 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		}
 
 		id := c.Param(constant.HeaderID) // Use a string directly if it's not a constant that changes.
-		logAttemptToRetrieve(id)         // Pass Context Log
 
 		url, err := datastore.GetURL(c.Request.Context(), dsClient, id) // Use the request's context
 		if err != nil {
@@ -66,8 +65,11 @@ func handleGetURLError(c *gin.Context, id string, err error) {
 // for indicate that client/user are bad requesting, not the server.
 func applyRateLimit(c *gin.Context) bool {
 	key := c.ClientIP()
+	id := c.Param(constant.HeaderID) // Use a string directly if it's not a constant that changes.
 	limiter := NewRateLimiter(key, rate.Limit(1), 10)
 	if !limiter.Allow() {
+		// Log with an emoji to indicate rate limiting has occurred.
+		logAttemptToRetrieve(id) // Pass Context Log
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 			constant.HeaderResponseError: constant.URLnotfoundContextLog,
 		})
