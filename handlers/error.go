@@ -148,7 +148,7 @@ func handleRetrievalError(err error, id string) error {
 	// Add an operation name as the first argument to createLogFields.
 	logFields := createLogFields(operation_retrieveURL, id)
 	if err == datastore.ErrNotFound {
-		logmonitor.Logger.Info(constant.AlertEmoji+"  "+constant.WarningEmoji+"  "+constant.NoURLIDContextLog, logFields...)
+		LogURLNotFound(id, err)      // Pass Context to the internal logging function.
 		return datastore.ErrNotFound // Return the original error directly
 	}
 	logmonitor.Logger.Error(constant.SosEmoji+"  "+constant.WarningEmoji+"  "+constant.FailedToRetriveURLContextLog, logFields...)
