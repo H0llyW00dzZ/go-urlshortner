@@ -18,11 +18,11 @@ func getURLHandlerGin(dsClient *datastore.Client) gin.HandlerFunc {
 		// Apply the rate limiter first.
 		if !applyRateLimit(c) {
 			// If the rate limit is exceeded, we should not continue processing the request.
-			logAttemptToRetrieve(id)
 			return
 		}
 
 		id := c.Param(constant.HeaderID)
+		logAttemptToRetrieve(id) // Pass Context Log
 		url, err := datastore.GetURL(c, dsClient, id)
 		if err != nil {
 			handleGetURLError(c, id, err)
