@@ -41,7 +41,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, constant.FailedToIntializeLoggerContextLog+" %v\n", err)
 		os.Exit(1)
 	}
-	defer logger.Sync() // Flush any buffered log entries
+	defer flushLogger(logger) // Flush any buffered log entries
 
 	// Pass the logger instance to other packages
 	datastore.SetLogger(logger)
@@ -60,6 +60,13 @@ func main() {
 
 	router := setupRouter(datastoreClient, logger)
 	startServer(router, logger, datastoreClient)
+}
+
+// flushLogger flushes any buffered log entries from the logger.
+func flushLogger(logger *zap.Logger) {
+	if err := logger.Sync(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to flush logger: %v", err)
+	}
 }
 
 // setupDatastoreClient creates a new Datastore client and performs a test operation to check connectivity.
