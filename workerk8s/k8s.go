@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -18,10 +19,12 @@ func RunWorkers(ctx context.Context, clientset *kubernetes.Clientset, namespace 
 	// Start the specified number of worker goroutines.
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
-		go func() {
+		go func(workerIndex int) {
 			defer wg.Done()
+			// We now use the package-level Logger, enhanced with additional fields.
+			SetLogger(Logger.With(zap.Int("workerIndex", workerIndex)))
 			Worker(shutdownCtx, clientset, namespace, results)
-		}()
+		}(i)
 	}
 
 	// Shutdown function to be called to initiate a graceful shutdown.

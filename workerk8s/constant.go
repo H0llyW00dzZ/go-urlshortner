@@ -13,4 +13,23 @@ const (
 	NotHealthyStatus       = "Not Healthy"
 	HealthyStatus          = "Healthy"
 	WorkerCancelled        = "Worker cancelled: %v"
+	HOME                   = "HOME"
+	kube                   = ".kube"
+	Config                 = "config"
+	errconfig              = "cannot load kubeconfig: %w"
+	cannotcreatek8s        = "cannot create kubernetes client: %w"
+)
+
+const (
+	FetchingPods   = "Fetching pods"
+	PodsFetched    = "Pods fetched"
+	ProcessingPods = "Processing pods"
+)
+
+const (
+	TaskLabelKey    = "LabelKey"
+	TaskCheckHealth = "CheckHealth"
+	TaskGetPod      = "GetPod"
+	TaskFetchPods   = "FetchPods"
+	TaskProcessPod  = "ProcessPod"
 )

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/H0llyW00dzZ/go-urlshortner/logmonitor/constant"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -12,26 +14,36 @@ import (
 // Worker starts a worker process that retrieves all pods in a given namespace,
 // performs health checks on them, and sends the results to a channel.
 func Worker(ctx context.Context, clientset *kubernetes.Clientset, namespace string, results chan<- string) {
+	fields := createLogFields(TaskCheckHealth, namespace)
 	// Retrieve a list of pods from the namespace.
+	logInfoWithEmoji(constant.InfoEmoji, "Worker started", fields...)
+
 	pods, err := getPods(ctx, clientset, namespace)
 	if err != nil {
-		// If there's an error retrieving pods, send an error message on the results channel.
-		results <- fmt.Sprintf("Error retrieving pods: %v", err)
+		errMsg := fmt.Sprintf("Error retrieving pods: %v", err)
+		logErrorWithEmoji(constant.ErrorEmoji, errMsg)
+		results <- errMsg
 		return
 	}
 
 	// Process each pod to determine its health status and send the results on the channel.
 	processPods(ctx, pods, results)
+	logInfoWithEmoji(constant.ModernGopherEmoji, "Worker finished processing pods", fields...)
 }
 
 // getPods fetches the list of all pods within a specific namespace.
 func getPods(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]corev1.Pod, error) {
 	// List all pods in the namespace using the provided context.
+	fields := createLogFields(TaskFetchPods, namespace)
+	logInfoWithEmoji(constant.ModernGopherEmoji, FetchingPods, fields...)
+
 	podList, err := clientset.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{})
 	if err != nil {
-		// Return an error if the pod list cannot be retrieved.
+		logErrorWithEmoji(constant.ModernGopherEmoji, "Failed to list pods", fields...)
 		return nil, err
 	}
+
+	logInfoWithEmoji(constant.ModernGopherEmoji, PodsFetched, append(fields, zap.Int("count", len(podList.Items)))...)
 	return podList.Items, nil
 }
 
@@ -41,8 +53,9 @@ func processPods(ctx context.Context, pods []corev1.Pod, results chan<- string) 
 	for _, pod := range pods {
 		select {
 		case <-ctx.Done():
-			// If the context is cancelled, send a cancellation message and exit the function.
-			results <- fmt.Sprintf(WorkerCancelled, ctx.Err())
+			cancelMsg := fmt.Sprintf("Worker cancelled: %v", ctx.Err())
+			logInfoWithEmoji(constant.ModernGopherEmoji, cancelMsg)
+			results <- cancelMsg
 			return
 		default:
 			// Determine the health status of the pod and send the result.
@@ -50,7 +63,9 @@ func processPods(ctx context.Context, pods []corev1.Pod, results chan<- string) 
 			if isPodHealthy(&pod) {
 				healthStatus = HealthyStatus
 			}
-			results <- fmt.Sprintf(PodAndStatusAndHealth, pod.Name, pod.Status.Phase, healthStatus)
+			statusMsg := fmt.Sprintf(PodAndStatusAndHealth, pod.Name, pod.Status.Phase, healthStatus)
+			logInfoWithEmoji(constant.ModernGopherEmoji, PodsFetched, createLogFields(ProcessingPods, pod.Name, statusMsg)...)
+			results <- statusMsg
 		}
 	}
 }
