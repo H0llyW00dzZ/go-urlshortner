@@ -6,7 +6,7 @@ require (
 	github.com/H0llyW00dzZ/ChatGPT-Next-Web-Session-Exporter v1.3.1
 	github.com/gin-gonic/gin v1.9.1
 	k8s.io/api v0.29.1
-	k8s.io/apimachinery v0.29.1
+	k8s.io/apimachinery v0.29.2
 )
 
 require (
