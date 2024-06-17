@@ -1,13 +1,13 @@
 module github.com/H0llyW00dzZ/go-urlshortner
 
 go 1.21.5
-toolchain go1.22.2
+toolchain go1.22.4
 
 require (
 	github.com/H0llyW00dzZ/ChatGPT-Next-Web-Session-Exporter v1.3.1
 	github.com/gin-gonic/gin v1.10.0
 	k8s.io/api v0.30.0
-	k8s.io/apimachinery v0.30.0
+	k8s.io/apimachinery v0.30.2
 )
 
 require (
