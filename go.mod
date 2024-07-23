@@ -6,7 +6,7 @@ toolchain go1.22.5
 require (
 	github.com/H0llyW00dzZ/ChatGPT-Next-Web-Session-Exporter v1.3.1
 	github.com/gin-gonic/gin v1.10.0
-	k8s.io/api v0.30.2
+	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
 )
 
@@ -95,5 +95,5 @@ require (
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/client-go v0.30.2
+	k8s.io/client-go v0.30.3
 )
