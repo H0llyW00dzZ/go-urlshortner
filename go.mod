@@ -6,7 +6,7 @@ toolchain go1.22.5
 require (
 	github.com/H0llyW00dzZ/ChatGPT-Next-Web-Session-Exporter v1.3.1
 	github.com/gin-gonic/gin v1.10.0
-	k8s.io/api v0.30.2
+	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
 )
 
